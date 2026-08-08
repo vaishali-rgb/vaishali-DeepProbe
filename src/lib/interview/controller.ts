@@ -25,6 +25,7 @@ import {
 
 import { generateOpeningQuestion, generateInterviewResponse } from '@/lib/gemini/interviewer';
 import { generateFinalFeedback } from '@/lib/gemini/evaluator';
+import { saveCandidateMemory, retrieveCandidateMemory } from '@/lib/breeth/memory';
 
 // ─── Start Interview ───────────────────────────────────────────────
 
@@ -42,7 +43,13 @@ export async function startInterview(
   let state = createInitialState(sessionId, candidateData, plan, analysis);
 
   // 4. Build context for opening question
-  const context = buildInterviewContext(state);
+  let context = buildInterviewContext(state);
+  
+  // 4b. Inject Breeth Memory
+  const pastMemory = await retrieveCandidateMemory(candidateData.member.id);
+  if (pastMemory) {
+    context += `\n\n=== PAST MEMORY ===\n${pastMemory}`;
+  }
 
   // 5. Get opening question from Gemini
   const opening = await generateOpeningQuestion(context);
@@ -82,7 +89,13 @@ export async function processAnswer(
   state = progressPhase(state);
 
   // 4. Build compressed context
-  const context = buildInterviewContext(state);
+  let context = buildInterviewContext(state);
+  
+  // 4b. Inject Breeth Memory
+  const pastMemory = await retrieveCandidateMemory(state.candidateData.member.id);
+  if (pastMemory) {
+    context += `\n\n=== PAST MEMORY ===\n${pastMemory}`;
+  }
 
   // 5. Get Gemini's response (evaluation + next question + decision)
   const geminiResponse = await generateInterviewResponse(context, message);
@@ -111,6 +124,8 @@ export async function processAnswer(
   // 9. Store important claims
   if (geminiResponse.importantClaim) {
     state = addImportantClaim(state, geminiResponse.importantClaim);
+    // Write claim directly to persistent memory
+    await saveCandidateMemory(state.candidateData.member.id, `Candidate made an important claim: ${geminiResponse.importantClaim}`);
   }
 
   // 10. COVERAGE GUARD — override Gemini if needed
@@ -160,6 +175,10 @@ async function finishInterview(
 ): Promise<InterviewResponse> {
   // Generate final feedback
   const feedback = await generateFinalFeedback(state);
+
+  // Persist the final evaluation to Breeth Memory
+  const finalEvalStr = `Final Interview Feedback:\nSummary: ${feedback.summary}\nStrengths: ${feedback.strengths.join(', ')}\nGaps: ${feedback.gaps.join(', ')}`;
+  await saveCandidateMemory(state.candidateData.member.id, finalEvalStr);
 
   // Mark completed
   state = markCompleted(state);
