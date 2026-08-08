@@ -3,37 +3,58 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const LLM_TIMEOUT_MS = 45000;
-const LLM_MAX_RETRIES = 1;
+const LLM_MAX_RETRIES = 3;
 const MODEL_NAME = 'gemini-3.6-flash';
 
-let genAI: GoogleGenerativeAI | null = null;
+let genClients: GoogleGenerativeAI[] = [];
+let currentClientIndex = 0;
 
 function getClient(): GoogleGenerativeAI {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (!apiKey) throw new Error('GEMINI_API_KEY or GOOGLE_API_KEY environment variable is not set');
-    genAI = new GoogleGenerativeAI(apiKey);
+  if (genClients.length === 0) {
+    const keysStr = process.env.GEMINI_API_KEYS;
+    const singleKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    
+    let keys: string[] = [];
+    if (keysStr) {
+      keys = keysStr.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    } else if (singleKey) {
+      keys = [singleKey];
+    }
+
+    if (keys.length === 0) {
+      throw new Error('No API keys found. Set GEMINI_API_KEYS (comma separated) or GEMINI_API_KEY');
+    }
+
+    genClients = keys.map(key => new GoogleGenerativeAI(key));
   }
-  return genAI;
+  
+  // Get current client
+  const client = genClients[currentClientIndex];
+  
+  // Advance the round-robin counter for the NEXT call to spread load
+  currentClientIndex = (currentClientIndex + 1) % genClients.length;
+  
+  return client;
 }
 
 export async function generateJSON<T>(
   systemPrompt: string,
   userPrompt: string
 ): Promise<T> {
-  const client = getClient();
-  const model = client.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: {
-      responseMimeType: 'application/json',
-      temperature: 0.7,
-    },
-  });
-
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= LLM_MAX_RETRIES; attempt++) {
     try {
+      // Get a new client on each attempt (round-robin)
+      const client = getClient();
+      const model = client.getGenerativeModel({
+        model: MODEL_NAME,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.7,
+        },
+      });
+
       const result = await Promise.race([
         model.generateContent({
           contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
@@ -59,21 +80,35 @@ export async function generateText(
   systemPrompt: string,
   userPrompt: string
 ): Promise<string> {
-  const client = getClient();
-  const model = client.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: { temperature: 0.7 },
-  });
+  let lastError: Error | null = null;
 
-  const result = await Promise.race([
-    model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      systemInstruction: { role: 'model', parts: [{ text: systemPrompt }] },
-    }),
-    timeoutPromise(LLM_TIMEOUT_MS),
-  ]);
+  for (let attempt = 0; attempt <= LLM_MAX_RETRIES; attempt++) {
+    try {
+      // Get a new client on each attempt (round-robin)
+      const client = getClient();
+      const model = client.getGenerativeModel({
+        model: MODEL_NAME,
+        generationConfig: { temperature: 0.7 },
+      });
 
-  return result.response.text();
+      const result = await Promise.race([
+        model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          systemInstruction: { role: 'model', parts: [{ text: systemPrompt }] },
+        }),
+        timeoutPromise(LLM_TIMEOUT_MS),
+      ]);
+
+      return result.response.text();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < LLM_MAX_RETRIES) {
+        await sleep(1000 * (attempt + 1)); // backoff
+      }
+    }
+  }
+
+  throw new Error(`Gemini API failed after ${LLM_MAX_RETRIES + 1} attempts: ${lastError?.message}`);
 }
 
 function parseJSONResponse<T>(text: string): T {
