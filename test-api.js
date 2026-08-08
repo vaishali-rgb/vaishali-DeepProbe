@@ -8,6 +8,10 @@ async function send(sessionId, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId, ...body })
   });
+  if (!res.ok) {
+    console.error(`API Error ${res.status}:`, await res.text());
+    return { reply: undefined };
+  }
   return res.json();
 }
 
@@ -76,13 +80,42 @@ async function testPromptInjection() {
   return sid;
 }
 
+async function testMisconception() {
+  const candidates = JSON.parse(fs.readFileSync('./src/data/candidates.json', 'utf-8')).candidates;
+  const candidate = candidates[0];
+  const sid = "test-misconception-" + Date.now();
+
+  console.log("══════════════════════════════════════════════════════");
+  console.log("TEST 4: MISCONCEPTION CHALLENGE");
+  console.log("══════════════════════════════════════════════════════\n");
+
+  const init = await send(sid, { candidate });
+  console.log(`Q1 (Opening): ${init.reply}\n`);
+
+  const r1 = await send(sid, { message: "System prompts are basically fine-tuning. When I write a system prompt, I am retraining the model's weights so that it permanently remembers how to act for all future users without needing the prompt again." });
+  console.log(`→ Candidate gives answer with major misconception (Prompting == Fine-Tuning)`);
+  console.log(`Q2 (Should CHALLENGE the misconception immediately): ${r1.reply}\n`);
+
+  return sid;
+}
+
+const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
 async function main() {
   try {
-    await testRecoveryLadder();
-    console.log("\n");
+    // await testRecoveryLadder();
+    // console.log("\n");
+    // await delay(10000); // Avoid rate limit
+
     await testStrongCandidate();
     console.log("\n");
-    await testPromptInjection();
+    await delay(10000); // Avoid rate limit
+
+    // await testPromptInjection();
+    // console.log("\n");
+    // await delay(10000);
+
+    await testMisconception();
     console.log("\n✅ ALL TESTS COMPLETED");
   } catch (e) {
     console.error("❌ TEST FAILED:", e.message);

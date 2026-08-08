@@ -148,6 +148,7 @@ export async function processAnswer(
 
   const forceExit = geminiResponse.forceEarlyExit === true;
   let enforcedDecision = geminiResponse.decision;
+  const geminiWantsNewTopic = enforcedDecision === 'new_topic';
 
   // 11a. KNOWLEDGE RECOVERY ENFORCEMENT
   // If topic is UNKNOWN/WEAK and diagnostic budget remains, BLOCK topic changes
@@ -155,7 +156,6 @@ export async function processAnswer(
   if (topicState && !forceExit) {
     const isWeakOrUnknown = topicState.knowledgeState === 'UNKNOWN' || topicState.knowledgeState === 'WEAK';
     const hasDiagnosticBudget = topicState.diagnosticAttempts < MAX_DIAGNOSTIC_ATTEMPTS;
-    const geminiWantsNewTopic = enforcedDecision === 'new_topic';
 
     if (isWeakOrUnknown && hasDiagnosticBudget && geminiWantsNewTopic) {
       // OVERRIDE: Force diagnostic instead of topic jump
@@ -182,7 +182,29 @@ export async function processAnswer(
     }
   }
 
-  // 11c. COMPLETION GUARD — check coverage + evidence quality
+  // 11c. STRONG ANSWER ESCALATION
+  // If candidate is strong, force Gemini to challenge or use a scenario rather than easy follow-ups
+  if (topicState && !forceExit && !geminiWantsNewTopic) {
+    const isStrong = topicState.knowledgeState === 'STRONG' || topicState.knowledgeState === 'COMPETENT';
+    const geminiIsTooEasy = enforcedDecision === 'follow_up' || enforcedDecision === 'clarify' || enforcedDecision === 'diagnostic';
+
+    if (isStrong && geminiIsTooEasy) {
+      console.log(`[Controller] OVERRIDE: Topic "${currentTopic}" is ${topicState.knowledgeState}. Escalating difficulty to challenge/scenario.`);
+      enforcedDecision = topicState.followUpsUsed > 1 ? 'scenario' : 'challenge';
+    }
+  }
+
+  // 11d. MISCONCEPTION CHALLENGE
+  // If a misconception was just detected, force a challenge immediately to address it
+  const misconceptions = geminiResponse.evaluation?.misconceptions || [];
+  if (!forceExit && misconceptions.length > 0 && !geminiWantsNewTopic) {
+    if (enforcedDecision !== 'challenge' && enforcedDecision !== 'diagnostic') {
+      console.log(`[Controller] OVERRIDE: Misconception detected. Forcing challenge.`);
+      enforcedDecision = 'challenge';
+    }
+  }
+
+  // 11e. COMPLETION GUARD — check coverage + evidence quality
   const coverageMet = canFinishInterview(state);
   const evidenceQualitySufficient = hasMinimumEvidenceQuality(state);
   const geminiWantsToFinish = enforcedDecision === 'complete' || !geminiResponse.continueInterview || forceExit;
@@ -205,7 +227,7 @@ export async function processAnswer(
     return await finishInterview(sessionId, state);
   }
 
-  // 11d. If controller overrode the decision, regenerate the question with the enforced action
+  // 11f. If controller overrode the decision, regenerate the question with the enforced action
   let replyText = geminiResponse.question.text;
   if (enforcedDecision !== geminiResponse.decision) {
     console.log(`[Controller] Decision overridden: ${geminiResponse.decision} → ${enforcedDecision}. Regenerating question.`);
@@ -217,6 +239,14 @@ export async function processAnswer(
       const nextDay = getNextSuggestedDay(state);
       const nextDayInfo = nextDay ? `Switch to curriculum Day ${nextDay}.` : 'Pick a completely different curriculum area.';
       overrideHint = `\n\nCONTROLLER OVERRIDE: You MUST move to a COMPLETELY DIFFERENT topic. The candidate has been unable to answer questions about "${currentTopic}" after multiple attempts. ${nextDayInfo} Do NOT ask anything related to "${currentTopic}".`;
+    } else if (enforcedDecision === 'challenge') {
+      const recentMisconception = misconceptions[0];
+      const challengeHint = recentMisconception 
+        ? `Challenge this specific misconception directly: "${recentMisconception}"`
+        : `Push the candidate harder on edge cases or limitations.`;
+      overrideHint = `\n\nCONTROLLER OVERRIDE: You MUST ask a CHALLENGE question. The candidate has demonstrated strong knowledge of "${currentTopic}". ${challengeHint} Do NOT ask a basic follow-up.`;
+    } else if (enforcedDecision === 'scenario') {
+      overrideHint = `\n\nCONTROLLER OVERRIDE: You MUST ask a SCENARIO question. Present a real-world production problem (e.g., latency, scaling, memory limits) related to "${currentTopic}". Force the candidate to make engineering tradeoffs.`;
     }
 
     const overrideContext = buildInterviewContext(state) + overrideHint;
