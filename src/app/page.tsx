@@ -80,7 +80,7 @@ export default function Home() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-3">
-             <div className="flex items-center gap-1 rounded-full bg-white/10 px-1.5 py-1.5 backdrop-blur-lg">
+             <div className="flex items-center gap-1 rounded-full bg-black/50 px-1.5 py-1.5 backdrop-blur-xl border border-white/10">
                {navLinks.map(link => (
                   <button key={link} className="flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
                     {link}
@@ -96,7 +96,7 @@ export default function Home() {
           {/* Mobile Nav Toggle */}
           <button 
             onClick={() => setMenuOpen(!menuOpen)} 
-            className="md:hidden relative z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-lg text-[#010101] lg:text-white transition-colors"
+            className="md:hidden relative z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-[#010101] lg:text-white transition-colors"
           >
             <Menu className={`absolute transition-all duration-300 ${menuOpen ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
             <X className={`absolute transition-all duration-300 ${menuOpen ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
@@ -175,11 +175,11 @@ export default function Home() {
              </p>
              
              {/* CTA (Dropdown + Button) */}
-             <div className="mt-6 sm:mt-8 flex flex-col sm:inline-flex sm:flex-row sm:items-center sm:rounded-full sm:bg-white sm:p-1.5 gap-3 sm:gap-0">
+             <div className="mt-6 sm:mt-8 flex flex-col sm:inline-flex sm:flex-row sm:items-center sm:rounded-full sm:bg-black/50 sm:backdrop-blur-xl sm:border sm:border-white/10 sm:p-1.5 gap-3 sm:gap-0">
                {/* Custom Select matching the email input specs */}
                <div className="relative w-full sm:w-64">
                  <select 
-                   className="w-full rounded-full sm:rounded-none bg-white sm:bg-transparent px-5 py-3 sm:px-4 sm:py-2 text-sm text-gray-900 placeholder-gray-400 outline-none appearance-none cursor-pointer"
+                   className="w-full rounded-full sm:rounded-none bg-black/50 backdrop-blur-xl border border-white/10 sm:border-none sm:bg-transparent px-5 py-3 sm:px-4 sm:py-2 text-sm text-white placeholder-gray-400 outline-none appearance-none cursor-pointer"
                    value={selectedCandidateId}
                    onChange={e => setSelectedCandidateId(e.target.value)}
                    disabled={loading}
@@ -206,7 +206,7 @@ export default function Home() {
            {/* Right side glass cards */}
            <div className="flex flex-col sm:flex-row gap-4 lg:w-auto lg:gap-5">
               {/* Stat card */}
-              <div className="flex flex-col justify-between sm:w-64 rounded-2xl bg-white/10 backdrop-blur-lg p-5 sm:p-6 text-[#010101] lg:text-white transition-colors duration-500">
+              <div className="flex flex-col justify-between sm:w-64 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 p-5 sm:p-6 text-[#010101] lg:text-white transition-colors duration-500">
                  {selectedCandidate ? (
                    <>
                      <div className="text-3xl sm:text-4xl font-normal tracking-tight" style={{ fontFamily: "var(--font-silkscreen), cursive" }}>
@@ -229,7 +229,7 @@ export default function Home() {
               </div>
 
               {/* Testimonial style card for candidate info */}
-              <div className="sm:w-64 rounded-2xl bg-white/10 backdrop-blur-lg p-5 sm:p-6 text-[#010101] lg:text-white transition-colors duration-500">
+              <div className="sm:w-64 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 p-5 sm:p-6 text-[#010101] lg:text-white transition-colors duration-500">
                  {selectedCandidate ? (
                    <>
                      <div className="mb-3 sm:mb-4 flex items-center gap-2">

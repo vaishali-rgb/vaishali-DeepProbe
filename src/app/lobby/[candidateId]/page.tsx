@@ -109,7 +109,7 @@ export default function LobbyPage(props: { params: Promise<{ candidateId: string
           >
             {/* Left Column - Start Action */}
             <div className="md:col-span-1 space-y-6">
-              <div className="rounded-2xl bg-white/10 backdrop-blur-lg p-6">
+              <div className="rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 p-6">
                 <h2 className="text-xl font-semibold mb-2">Interview Lobby</h2>
                 <p className="text-sm text-white/70 mb-6">
                   Ready to begin the AI engineering technical assessment?
@@ -136,7 +136,7 @@ export default function LobbyPage(props: { params: Promise<{ candidateId: string
                 </button>
               </div>
 
-              <div className="rounded-2xl bg-white/10 backdrop-blur-lg p-6">
+              <div className="rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 p-6">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
                   <Brain className="w-4 h-4 text-white" /> Key Signals
                 </h3>
@@ -159,7 +159,7 @@ export default function LobbyPage(props: { params: Promise<{ candidateId: string
 
             {/* Right Column - Candidate Brief */}
             <div className="md:col-span-2 space-y-6">
-              <div className="rounded-2xl bg-white/10 backdrop-blur-lg p-6 sm:p-8">
+              <div className="rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 p-6 sm:p-8">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6">
                   <div>
                     <h2 className="text-3xl mb-2 flex items-center gap-3 font-semibold">
