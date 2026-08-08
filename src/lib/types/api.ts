@@ -33,9 +33,14 @@ export function isTurnRequest(req: InterviewRequest): req is InterviewTurnReques
 // Feedback object (final response only)
 export interface FeedbackResponse {
   summary: string;
-  strengths: string[];
-  gaps: string[];
-  next: string[];
+  technicalStrengths: string[];
+  technicalGaps: string[];
+  demonstratedSkills: string[];
+  misconceptions: string[];
+  communicationStrengths: string[];
+  communicationGaps: string[];
+  curriculumCoverage: string[];
+  recommendedNextSteps: string[];
 }
 
 // The organizer-facing response — DO NOT MODIFY THIS CONTRACT

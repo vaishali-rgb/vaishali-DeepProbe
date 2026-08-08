@@ -250,7 +250,7 @@ async function finishInterview(
   const feedback = await generateFinalFeedback(state);
 
   // Persist the final evaluation to Breeth Memory
-  const finalEvalStr = `Final Interview Feedback:\nSummary: ${feedback.summary}\nStrengths: ${feedback.strengths.join(', ')}\nGaps: ${feedback.gaps.join(', ')}`;
+  const finalEvalStr = `Final Interview Feedback:\nSummary: ${feedback.summary}\nStrengths: ${feedback.technicalStrengths.join(', ')}\nGaps: ${feedback.technicalGaps.join(', ')}\nNext Steps: ${feedback.recommendedNextSteps.join(', ')}`;
   await saveCandidateMemory(state.candidateData.member.id, finalEvalStr);
 
   // Mark completed
@@ -267,12 +267,8 @@ async function finishInterview(
   state = addMessage(state, 'interviewer', closingMessage);
   sessionManager.update(sessionId, state);
 
-  const feedbackResponse: FeedbackResponse = {
-    summary: feedback.summary,
-    strengths: feedback.strengths,
-    gaps: feedback.gaps,
-    next: feedback.next,
-  };
+  // The feedback object already matches the FeedbackResponse interface exactly now.
+  const feedbackResponse: FeedbackResponse = feedback;
 
   return {
     reply: closingMessage,
