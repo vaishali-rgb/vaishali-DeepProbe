@@ -215,7 +215,7 @@ export default function Home() {
                                setSelectedCandidateId(c.id)
                                setIsDropdownOpen(false)
                              }}
-                             className={`w-full text-left px-4 py-2.5 rounded-xl text-sm transition-colors ${selectedCandidateId === c.id ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                             className={`w-full text-left px-4 py-2.5 rounded-xl text-sm transition-colors ${selectedCandidateId === c.id ? 'bg-white/20 text-white font-medium' : 'text-white hover:bg-white/10 hover:text-white'}`}
                            >
                              {c.name} - {c.jobRole}
                            </button>
