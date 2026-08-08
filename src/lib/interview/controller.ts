@@ -130,9 +130,10 @@ export async function processAnswer(
 
   // 10. COVERAGE GUARD — override Gemini if needed
   const coverageMet = canFinishInterview(state);
-  const geminiWantsToFinish = geminiResponse.decision === 'complete' || !geminiResponse.continueInterview;
+  const forceExit = geminiResponse.forceEarlyExit === true;
+  const geminiWantsToFinish = geminiResponse.decision === 'complete' || !geminiResponse.continueInterview || forceExit;
 
-  if (geminiWantsToFinish && !coverageMet) {
+  if (geminiWantsToFinish && (!coverageMet && !forceExit)) {
     // Override: force continuation
     const nextDay = getNextSuggestedDay(state);
     const overrideContext = buildInterviewContext(state, nextDay ?? undefined);
@@ -144,7 +145,7 @@ export async function processAnswer(
     return { reply: overrideResponse.question.text, done: false };
   }
 
-  if (geminiWantsToFinish && coverageMet) {
+  if (geminiWantsToFinish && (coverageMet || forceExit)) {
     // Interview complete — generate final feedback
     return await finishInterview(sessionId, state);
   }

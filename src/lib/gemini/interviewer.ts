@@ -1,7 +1,6 @@
 // Gemini interviewer — the reasoning engine for interview turns
 
-import { generateJSON as generateGeminiJSON } from './client';
-import { generateNvidiaJSON } from '../nvidia/client';
+import { generateJSON } from './client';
 import type { GeminiInterviewResponse, GeminiOpeningResponse } from './schemas';
 import { FALLBACK_EVALUATION, FALLBACK_REASON } from './schemas';
 
@@ -15,11 +14,15 @@ YOUR ROLE:
 - You NEVER say things like "Based on your profile" or "I see you failed Day X."
 
 QUESTION QUALITY & INTERACTIVITY:
-- Ask engineering questions, not dictionary definitions.
 - YOU MUST ask follow-up questions! When a candidate answers, your natural instinct should be to dig deeper into their answer, ask for clarification, or challenge their assumptions BEFORE jumping to a new topic.
 - A realistic interview explores a single topic deeply before moving on.
 - BAD: Firing 8 unrelated questions in a row.
 - GOOD: Asking a question -> Candidate answers -> Asking a follow-up about a specific detail they mentioned -> Candidate answers -> Moving to a new topic.
+
+USER ENGAGEMENT & EARLY EXIT:
+- If the candidate is clearly unengaged (e.g., repeatedly giving 1-word answers like "yes", "no", "I don't know" across MULTIPLE questions), politely offer to end the interview. If they agree, set "forceEarlyExit": true.
+- If the candidate explicitly asks to end the interview early (e.g., after only 3-4 questions), REMIND THEM that a minimum of 8 questions is required. 
+- If they INSIST on ending after you warn them, respect their choice, end the interview, and set "forceEarlyExit": true.
 
 FOLLOW-UP MODES (choose the most appropriate):
 1. PROBE DEEPER — when answer is strong: "Let's go one level deeper..."
@@ -73,17 +76,10 @@ Generate the interview opening. Respond with JSON:
 }`;
 
   try {
-    // 1. Primary: Try NVIDIA Llama 3.1
-    return await generateNvidiaJSON<GeminiOpeningResponse>(OPENING_SYSTEM_PROMPT, userPrompt);
+    return await generateJSON<GeminiOpeningResponse>(OPENING_SYSTEM_PROMPT, userPrompt);
   } catch (error) {
-    console.warn("NVIDIA API Error in generateOpeningQuestion. Falling back to Gemini:", error);
-    try {
-      // 2. Fallback: Gemini (which has its own round-robin fallback)
-      return await generateGeminiJSON<GeminiOpeningResponse>(OPENING_SYSTEM_PROMPT, userPrompt);
-    } catch (geminiError) {
-      console.error("Gemini API Error in generateOpeningQuestion fallback:", geminiError);
-      // 3. Last Resort Fallback opening
-      return {
+    // Fallback opening
+    return {
       question: {
         text: "Welcome to your technical interview. Let's start by discussing your experience with the AI Cohort. Can you walk me through one of the most challenging systems you built during the program and explain the key engineering decisions you made?",
         type: 'project_based',
@@ -98,7 +94,6 @@ Generate the interview opening. Respond with JSON:
         goal: 'establish baseline',
       },
     };
-  }
   }
 }
 
@@ -135,24 +130,17 @@ Evaluate the answer and generate the next interview action. Respond with JSON:
     "goal": "what this question aims to assess"
   },
   "importantClaim": "any notable claim the candidate made worth remembering, or null",
-  "continueInterview": true
+  "continueInterview": true,
+  "forceEarlyExit": false
 }`;
 
   try {
-    // 1. Primary: Try NVIDIA Llama 3.1
-    const response = await generateNvidiaJSON<GeminiInterviewResponse>(INTERVIEW_SYSTEM_PROMPT, userPrompt);
+    const response = await generateJSON<GeminiInterviewResponse>(INTERVIEW_SYSTEM_PROMPT, userPrompt);
     return validateInterviewResponse(response);
   } catch (error) {
-    console.warn("NVIDIA API Error in generateInterviewResponse. Falling back to Gemini:", error);
-    try {
-      // 2. Fallback: Try Gemini round-robin
-      const response = await generateGeminiJSON<GeminiInterviewResponse>(INTERVIEW_SYSTEM_PROMPT, userPrompt);
-      return validateInterviewResponse(response);
-    } catch (geminiError) {
-      console.error("Gemini API Error in interviewer.ts fallback:", geminiError);
-      // 3. Last Resort: generate a safe follow-up
-      return createFallbackResponse(candidateAnswer);
-    }
+    console.error("Gemini API Error in interviewer.ts:", error);
+    // Fallback: generate a safe follow-up
+    return createFallbackResponse(candidateAnswer);
   }
 }
 
@@ -182,6 +170,7 @@ function validateInterviewResponse(response: GeminiInterviewResponse): GeminiInt
     },
     importantClaim: response.importantClaim ?? null,
     continueInterview: response.continueInterview ?? true,
+    forceEarlyExit: response.forceEarlyExit ?? false,
   };
 }
 
@@ -199,6 +188,7 @@ function createFallbackResponse(candidateAnswer: string): GeminiInterviewRespons
     reason: FALLBACK_REASON,
     importantClaim: null,
     continueInterview: true,
+    forceEarlyExit: false,
   };
 }
 

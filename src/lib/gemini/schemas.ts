@@ -31,6 +31,7 @@ export interface GeminiInterviewResponse {
 
   importantClaim: string | null;
   continueInterview: boolean;
+  forceEarlyExit?: boolean;
 }
 
 // The response for the opening question (no evaluation yet)
