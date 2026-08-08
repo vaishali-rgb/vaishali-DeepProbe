@@ -98,6 +98,21 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
       if (!res.ok) {
         console.error("API Error:", data)
         setIsTyping(false)
+        
+        if (data?.code === 'SESSION_NOT_FOUND') {
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            role: "interviewer",
+            content: "⚠️ Connection lost. The development server restarted or the session expired. Please return to the home page and start a new interview."
+          }])
+          setIsDone(true)
+        } else {
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            role: "interviewer",
+            content: `⚠️ System Error: ${data?.error || "Could not process your response. Please try again."}`
+          }])
+        }
         return
       }
       

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       'INVALID_REQUEST',
       400
     );
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof SessionError) {
       const statusMap: Record<string, number> = {
         SESSION_NOT_FOUND: 404,
@@ -57,11 +57,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.error('[/api/interview] Unhandled error:', error);
-    return errorResponse(
-      'An internal error occurred. Please try again.',
-      'INTERNAL_ERROR',
-      500
-    );
+    return NextResponse.json({ 
+      error: 'An internal error occurred. Please try again.', 
+      code: 'INTERNAL_ERROR',
+      message: error?.message,
+      stack: error?.stack 
+    }, { status: 500 });
   }
 }
 
