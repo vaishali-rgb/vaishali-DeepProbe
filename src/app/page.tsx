@@ -38,6 +38,9 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => {
         setCandidates(data.candidates)
+        if (data.candidates.length > 0) {
+          setSelectedCandidateId(data.candidates[0].id)
+        }
         setLoading(false)
       })
       .catch((err) => {
@@ -203,7 +206,7 @@ export default function Home() {
                          animate={{ opacity: 1, y: 0, scale: 1 }}
                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
                          transition={{ duration: 0.2 }}
-                         className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl flex flex-col p-1"
+                         className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 shadow-2xl flex flex-col p-1 max-h-60 overflow-y-auto"
                        >
                          {candidates.map(c => (
                            <button
