@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, User, Bot, Search, AlertCircle, Sparkles, Flag, PlayCircle, Star } from "lucide-react"
 import { use } from "react"
+import KineticGrid from "@/components/ui/kinetic-grid"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -82,7 +83,9 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
   }
 
   return (
-    <main className="container mx-auto max-w-5xl p-6 py-12">
+    <KineticGrid globalColor="default" className="font-sans">
+      <div className="relative z-10 flex h-full flex-col min-h-screen">
+        <main className="container mx-auto max-w-5xl p-6 py-12 flex-1">
       <div className="flex justify-between items-center mb-8">
         <Button 
           variant="ghost" 
@@ -101,8 +104,8 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold mb-2">Interview Playback: {data.candidateName}</h1>
-        <p className="text-muted-foreground flex gap-4">
+        <h1 className="text-3xl font-bold mb-2 text-white">Interview Playback: {data.candidateName}</h1>
+        <p className="text-white/70 flex gap-4">
           <span>{data.questionCount} Questions</span>
           <span>•</span>
           <span>{data.curriculumDaysCovered.length} Curriculum Days</span>
@@ -119,16 +122,16 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="overflow-hidden glass-panel border-border/50">
-              <CardHeader className="bg-secondary/20 pb-4 border-b border-border/50">
+            <Card className="overflow-hidden bg-black/50 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl">
+              <CardHeader className="bg-white/5 pb-4 border-b border-white/10">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
                       Q{index + 1}
                     </div>
                     <div>
-                      <CardTitle className="text-lg">Day {record.day}: {record.topic}</CardTitle>
-                      <div className="text-sm text-muted-foreground flex gap-2 mt-1">
+                      <CardTitle className="text-lg text-white">Day {record.day}: {record.topic}</CardTitle>
+                      <div className="text-sm text-white/70 flex gap-2 mt-1">
                         <Badge variant="secondary" className="text-[10px]">{record.questionType}</Badge>
                         <Badge variant="outline" className="text-[10px] capitalize">{record.difficulty}</Badge>
                       </div>
@@ -138,7 +141,7 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
                     variant="outline" 
                     size="sm" 
                     onClick={() => setActiveQuestion(activeQuestion === index ? null : index)}
-                    className="gap-2"
+                    className="gap-2 bg-black/50 text-white border-white/20 hover:bg-white/10"
                   >
                     <Search className="w-4 h-4" /> 
                     {activeQuestion === index ? "Hide Analysis" : "Why this question?"}
@@ -151,20 +154,20 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
                   {/* Q & A */}
                   <div className="space-y-4">
                     <div className="flex gap-3 max-w-[85%]">
-                      <div className="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                      <div className="shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
                         <Bot className="w-5 h-5" />
                       </div>
-                      <div className="p-3 rounded-2xl bg-secondary/30 rounded-tl-sm">
-                        <p className="text-sm">{record.question}</p>
+                      <div className="p-3 rounded-2xl bg-white/10 border border-white/10 rounded-tl-sm backdrop-blur-md">
+                        <p className="text-sm text-white">{record.question}</p>
                       </div>
                     </div>
                     
                     <div className="flex gap-3 max-w-[85%] ml-auto flex-row-reverse">
-                      <div className="shrink-0 w-8 h-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
+                      <div className="shrink-0 w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center">
                         <User className="w-5 h-5" />
                       </div>
-                      <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 rounded-tr-sm">
-                        <p className="text-sm">{record.answer}</p>
+                      <div className="p-3 rounded-2xl bg-white/20 border border-white/10 rounded-tr-sm backdrop-blur-md">
+                        <p className="text-sm text-white">{record.answer}</p>
                       </div>
                     </div>
                   </div>
@@ -178,33 +181,33 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-4">
                           
                           {/* Reason Panel */}
-                          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-                            <h4 className="font-semibold flex items-center gap-2 mb-3 text-primary">
+                          <div className="bg-black/40 rounded-xl p-4 border border-white/10 backdrop-blur-md">
+                            <h4 className="font-semibold flex items-center gap-2 mb-3 text-blue-400">
                               <Sparkles className="w-4 h-4" /> The "Why"
                             </h4>
-                            <div className="space-y-2 text-sm">
+                            <div className="space-y-2 text-sm text-white/90">
                               <div>
-                                <span className="text-muted-foreground block text-xs">Trigger</span>
+                                <span className="text-white/50 block text-xs">Trigger</span>
                                 <span>{record.reason.trigger}</span>
                               </div>
                               <div>
-                                <span className="text-muted-foreground block text-xs">Based On</span>
+                                <span className="text-white/50 block text-xs">Based On</span>
                                 <span>{record.reason.basedOn}</span>
                               </div>
                               <div>
-                                <span className="text-muted-foreground block text-xs">Goal</span>
+                                <span className="text-white/50 block text-xs">Goal</span>
                                 <span>{record.reason.goal}</span>
                               </div>
                             </div>
                           </div>
 
                           {/* Evaluation Panel */}
-                          <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
+                          <div className="bg-black/40 rounded-xl p-4 border border-white/10 backdrop-blur-md">
                             <div className="flex justify-between items-center mb-3">
-                              <h4 className="font-semibold flex items-center gap-2">
+                              <h4 className="font-semibold flex items-center gap-2 text-white">
                                 <Flag className="w-4 h-4" /> Evaluation
                               </h4>
                               <Badge variant={record.evaluation.score >= 7 ? "success" : record.evaluation.score >= 4 ? "warning" : "destructive"}>
@@ -218,17 +221,17 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
                                   <span className="text-emerald-400 block text-xs font-medium flex items-center gap-1 mb-1">
                                     <Star className="w-3 h-3" /> Strengths
                                   </span>
-                                  <ul className="list-disc pl-4 text-foreground/80 space-y-1">
+                                  <ul className="list-disc pl-4 text-white/80 space-y-1">
                                     {record.evaluation.strengths.map((s, i) => <li key={i}>{s}</li>)}
                                   </ul>
                                 </div>
                               )}
                               {record.evaluation.gaps.length > 0 && (
                                 <div>
-                                  <span className="text-destructive block text-xs font-medium flex items-center gap-1 mb-1">
+                                  <span className="text-red-400 block text-xs font-medium flex items-center gap-1 mb-1">
                                     <AlertCircle className="w-3 h-3" /> Gaps Identified
                                   </span>
-                                  <ul className="list-disc pl-4 text-foreground/80 space-y-1">
+                                  <ul className="list-disc pl-4 text-white/80 space-y-1">
                                     {record.evaluation.gaps.map((g, i) => <li key={i}>{g}</li>)}
                                   </ul>
                                 </div>
@@ -246,6 +249,8 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
           </motion.div>
         ))}
       </div>
-    </main>
+        </main>
+      </div>
+    </KineticGrid>
   )
 }

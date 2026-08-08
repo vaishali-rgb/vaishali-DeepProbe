@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Send, User, Bot, AlertCircle, CheckCircle, ShieldCheck } from "lucide-react"
 import { use } from "react"
+import KineticGrid from "@/components/ui/kinetic-grid"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -141,9 +142,11 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
   const progressPercent = Math.min(Math.max((questionsCount / 8) * 100, 0), 100)
 
   return (
-    <main className="container mx-auto max-w-5xl h-screen flex flex-col p-4 md:p-6 overflow-hidden">
-      {/* Header Panel */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 bg-card/50 p-4 rounded-2xl border border-border/50 backdrop-blur-md">
+    <KineticGrid globalColor="default" className="font-sans">
+      <div className="relative z-10 flex h-full flex-col min-h-screen">
+        <main className="container mx-auto max-w-5xl flex-1 flex flex-col p-4 md:p-6 overflow-hidden">
+          {/* Header Panel */}
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 bg-black/50 p-4 rounded-2xl border border-white/10 backdrop-blur-xl text-white">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/20 text-primary rounded-xl">
             <Bot className="w-6 h-6" />
@@ -158,19 +161,19 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
         
         <div className="w-full md:w-1/3 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Interview Progress</span>
-            <span className="font-medium text-primary">{questionsCount} / 8+ Qs</span>
+            <span className="text-white/70">Interview Progress</span>
+            <span className="font-medium text-white">{questionsCount} / 8+ Qs</span>
           </div>
-          <Progress value={progressPercent} className="h-2" />
+          <Progress value={progressPercent} className="h-2 bg-white/20" />
         </div>
       </div>
 
       {/* Chat Area */}
-      <Card className="flex-1 flex flex-col min-h-0 border-border/50 shadow-xl overflow-hidden glass-card">
+      <Card className="flex-1 flex flex-col min-h-0 border-white/10 shadow-2xl overflow-hidden bg-black/50 backdrop-blur-xl rounded-2xl">
         <CardContent className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-              <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+            <div className="h-full flex flex-col items-center justify-center text-white/70">
+              <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mb-4"></div>
               <p>Connecting to AI Interviewer...</p>
             </div>
           ) : (
@@ -192,8 +195,8 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
                     
                     <div className={`p-4 rounded-2xl ${
                       msg.role === "candidate" 
-                        ? "bg-primary text-primary-foreground rounded-tr-sm" 
-                        : "bg-secondary/60 text-secondary-foreground border border-border/50 rounded-tl-sm backdrop-blur-sm"
+                        ? "bg-white/20 text-white rounded-tr-sm border border-white/10" 
+                        : "bg-black/40 text-white border border-white/10 rounded-tl-sm backdrop-blur-md"
                     }`}>
                       <p className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">{msg.content}</p>
                       
@@ -216,7 +219,7 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
                                 console.error("TTS play failed:", e)
                               }
                             }}
-                            className="text-xs text-primary hover:underline flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity"
+                            className="text-xs text-white/70 hover:underline flex items-center gap-1 hover:text-white transition-opacity"
                             title="Play audio"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
@@ -239,10 +242,10 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
                     <div className="shrink-0 w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center animate-pulse">
                       <Bot className="w-5 h-5" />
                     </div>
-                    <div className="p-4 rounded-2xl bg-secondary/30 rounded-tl-sm flex items-center gap-1">
-                      <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                      <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce"></div>
+                    <div className="p-4 rounded-2xl bg-black/40 text-white border border-white/10 rounded-tl-sm flex items-center gap-1 backdrop-blur-md">
+                      <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                      <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
                     </div>
                   </div>
                 </motion.div>
@@ -253,7 +256,7 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
         </CardContent>
         
         {/* Input Area */}
-        <div className="p-4 bg-background/50 backdrop-blur-md border-t border-border/50">
+        <div className="p-4 bg-black/50 backdrop-blur-xl border-t border-white/10">
           <form onSubmit={handleSend} className="relative max-w-4xl mx-auto flex items-end gap-2">
             <div className="relative flex-1">
               <textarea
@@ -261,7 +264,7 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={isDone ? "Interview completed..." : "Type your response here... (Press Enter to send)"}
-                className="w-full min-h-[60px] max-h-[200px] resize-none rounded-xl border border-input bg-transparent px-4 py-3 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full min-h-[60px] max-h-[200px] resize-none rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white shadow-sm placeholder:text-white/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={isTyping || isDone}
                 rows={1}
               />
@@ -285,6 +288,8 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
           </form>
         </div>
       </Card>
-    </main>
+        </main>
+      </div>
+    </KineticGrid>
   )
 }
