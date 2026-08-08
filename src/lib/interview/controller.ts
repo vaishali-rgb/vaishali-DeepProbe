@@ -1,7 +1,8 @@
 // Interview controller — main orchestrator implementing the state machine
-// Your application owns state/constraints/memory. Gemini owns reasoning.
+// ARCHITECTURE: Gemini RECOMMENDS the next action. Controller VALIDATES and ENFORCES it.
 
-import type { InterviewState, EvidenceRecord, InterviewPhase } from '@/lib/types/interview';
+import type { InterviewState, EvidenceRecord, InterviewPhase, DecisionAction } from '@/lib/types/interview';
+import { MAX_FOLLOWUPS_PER_TOPIC, MAX_DIAGNOSTIC_ATTEMPTS } from '@/lib/types/interview';
 import type { CandidateProfile } from '@/lib/types/candidate';
 import type { InterviewResponse, FeedbackResponse } from '@/lib/types/api';
 
@@ -98,13 +99,15 @@ export async function processAnswer(
     context += `\n\n=== PAST MEMORY ===\n${pastMemory}`;
   }
 
-  // 5. Get Gemini's response (evaluation + next question + decision)
+  // 5. Get Gemini's RECOMMENDATION (evaluation + next question + decision)
   const geminiResponse = await generateInterviewResponse(context, message);
 
   // 6. Create evidence record
+  const currentTopic = geminiResponse.question.topic || 'General';
+  const currentDay = geminiResponse.question.curriculumDay || getCurrentDay(state);
   const evidenceRecord: EvidenceRecord = {
-    day: geminiResponse.question.curriculumDay || getCurrentDay(state),
-    topic: geminiResponse.question.topic || 'General',
+    day: currentDay,
+    topic: currentTopic,
     question: state.questionsAsked[state.questionsAsked.length - 1] || '',
     answer: message,
     questionType: geminiResponse.question.type,
@@ -125,28 +128,68 @@ export async function processAnswer(
   // 9. Store important claims
   if (geminiResponse.importantClaim) {
     state = addImportantClaim(state, geminiResponse.importantClaim);
-    // Write claim directly to persistent memory
     await saveCandidateMemory(state.candidateData.member.id, `Candidate made an important claim: ${geminiResponse.importantClaim}`);
   }
 
-  // 9b. Update per-topic knowledge state
-  const responseTopic = geminiResponse.question.topic || 'General';
+  // 10. Update per-topic knowledge state
   state = updateTopicKnowledge(
     state,
-    responseTopic,
-    geminiResponse.question.curriculumDay || getCurrentDay(state),
+    currentTopic,
+    currentDay,
     geminiResponse.evaluation,
     geminiResponse.question.type,
     geminiResponse.decision
   );
 
-  // 10. COVERAGE GUARD — override Gemini if needed
-  const coverageMet = canFinishInterview(state);
-  const forceExit = geminiResponse.forceEarlyExit === true;
-  const geminiWantsToFinish = geminiResponse.decision === 'complete' || !geminiResponse.continueInterview || forceExit;
+  // ═══════════════════════════════════════════════════════════════════
+  // 11. CONTROLLER ENFORCEMENT — Override Gemini if needed
+  // Gemini recommends. Controller decides.
+  // ═══════════════════════════════════════════════════════════════════
 
-  if (geminiWantsToFinish && (!coverageMet && !forceExit)) {
-    // Override: force continuation
+  const forceExit = geminiResponse.forceEarlyExit === true;
+  let enforcedDecision = geminiResponse.decision;
+
+  // 11a. KNOWLEDGE RECOVERY ENFORCEMENT
+  // If topic is UNKNOWN/WEAK and diagnostic budget remains, BLOCK topic changes
+  const topicState = state.topicKnowledge[currentTopic];
+  if (topicState && !forceExit) {
+    const isWeakOrUnknown = topicState.knowledgeState === 'UNKNOWN' || topicState.knowledgeState === 'WEAK';
+    const hasDiagnosticBudget = topicState.diagnosticAttempts < MAX_DIAGNOSTIC_ATTEMPTS;
+    const geminiWantsNewTopic = enforcedDecision === 'new_topic';
+
+    if (isWeakOrUnknown && hasDiagnosticBudget && geminiWantsNewTopic) {
+      // OVERRIDE: Force diagnostic instead of topic jump
+      console.log(`[Controller] OVERRIDE: Blocking topic jump. Topic "${currentTopic}" is ${topicState.knowledgeState} with ${topicState.diagnosticAttempts}/${MAX_DIAGNOSTIC_ATTEMPTS} diagnostics used. Forcing diagnostic.`);
+      enforcedDecision = 'diagnostic';
+    }
+  }
+
+  // 11b. TOPIC DEPTH BUDGET ENFORCEMENT
+  // If too many follow-ups on one topic, force a topic change
+  if (topicState && !forceExit) {
+    const depthExhausted = topicState.followUpsUsed >= MAX_FOLLOWUPS_PER_TOPIC;
+    const diagnosticExhausted = topicState.diagnosticAttempts >= MAX_DIAGNOSTIC_ATTEMPTS;
+    const stayingOnTopic = enforcedDecision !== 'new_topic' && enforcedDecision !== 'complete';
+
+    if (depthExhausted && stayingOnTopic && topicState.knowledgeState !== 'UNKNOWN') {
+      console.log(`[Controller] OVERRIDE: Topic "${currentTopic}" depth budget exhausted (${topicState.followUpsUsed}/${MAX_FOLLOWUPS_PER_TOPIC} follow-ups). Forcing new topic.`);
+      enforcedDecision = 'new_topic';
+    }
+    // Also force new topic if diagnostic budget is exhausted on an UNKNOWN topic
+    if (topicState.knowledgeState === 'UNKNOWN' && diagnosticExhausted && stayingOnTopic) {
+      console.log(`[Controller] OVERRIDE: Topic "${currentTopic}" diagnostic budget exhausted. Candidate cannot answer. Moving on.`);
+      enforcedDecision = 'new_topic';
+    }
+  }
+
+  // 11c. COMPLETION GUARD — check coverage + evidence quality
+  const coverageMet = canFinishInterview(state);
+  const evidenceQualitySufficient = hasMinimumEvidenceQuality(state);
+  const geminiWantsToFinish = enforcedDecision === 'complete' || !geminiResponse.continueInterview || forceExit;
+
+  if (geminiWantsToFinish && !forceExit && (!coverageMet || !evidenceQualitySufficient)) {
+    // Override: force continuation — not enough coverage or evidence
+    console.log(`[Controller] OVERRIDE: Blocking completion. Coverage met: ${coverageMet}, Evidence quality: ${evidenceQualitySufficient}`);
     const nextDay = getNextSuggestedDay(state);
     const overrideContext = buildInterviewContext(state, nextDay ?? undefined);
     const overrideResponse = await generateInterviewResponse(overrideContext, message);
@@ -157,24 +200,37 @@ export async function processAnswer(
     return { reply: overrideResponse.question.text, done: false };
   }
 
-  if (geminiWantsToFinish && (coverageMet || forceExit)) {
+  if (geminiWantsToFinish && (forceExit || (coverageMet && evidenceQualitySufficient))) {
     // Interview complete — generate final feedback
     return await finishInterview(sessionId, state);
   }
 
-  // 11. Check for repetition and regenerate if needed
+  // 11d. If controller overrode the decision, regenerate the question with the enforced action
   let replyText = geminiResponse.question.text;
+  if (enforcedDecision !== geminiResponse.decision) {
+    console.log(`[Controller] Decision overridden: ${geminiResponse.decision} → ${enforcedDecision}. Regenerating question.`);
+    const overrideHint = enforcedDecision === 'diagnostic'
+      ? `\n\nCONTROLLER OVERRIDE: You MUST ask a DIAGNOSTIC question. Simplify the current topic to a fundamental concept. Do NOT change to a new topic.`
+      : enforcedDecision === 'new_topic'
+      ? `\n\nCONTROLLER OVERRIDE: You MUST move to a NEW TOPIC. The current topic has been sufficiently explored.`
+      : '';
+
+    const overrideContext = buildInterviewContext(state) + overrideHint;
+    const overrideResponse = await generateInterviewResponse(overrideContext, message);
+    replyText = overrideResponse.question.text;
+  }
+
+  // 12. Check for repetition and regenerate if needed
   if (isRepetition(replyText, state.questionsAsked)) {
-    // Ask Gemini to try a different question
     const retryContext = buildInterviewContext(state);
     const retryResponse = await generateInterviewResponse(retryContext, message);
     replyText = retryResponse.question.text;
   }
 
-  // 12. Add interviewer message
+  // 13. Add interviewer message
   state = addMessage(state, 'interviewer', replyText);
 
-  // 13. Save state
+  // 14. Save state
   sessionManager.update(sessionId, state);
 
   return { reply: replyText, done: false };
@@ -196,6 +252,12 @@ async function finishInterview(
   // Mark completed
   state = markCompleted(state);
 
+  // Build a structured closing message
+  const topicCount = Object.keys(state.topicKnowledge).length;
+  const evidenceCount = state.evidence.length;
+  const misconceptionCount = state.misconceptions.length;
+  const recoveryCount = Object.values(state.topicKnowledge).filter(t => t.recoveryAttempts > 0).length;
+
   const closingMessage = `Thank you for completing this interview, ${state.candidateData.member.name}. I've gathered sufficient evidence across ${[...new Set(state.curriculumDaysCovered)].length} curriculum areas over ${state.questionCount} questions. Your detailed feedback is ready for review.`;
 
   state = addMessage(state, 'interviewer', closingMessage);
@@ -215,17 +277,33 @@ async function finishInterview(
   };
 }
 
+// ─── Evidence Quality Gate ─────────────────────────────────────────
+
+function hasMinimumEvidenceQuality(state: InterviewState): boolean {
+  // Don't allow completion with only "I don't know" answers
+  // At least some evidence records must have score > 1
+  const meaningfulEvidence = state.evidence.filter(e => e.evaluation.score > 1);
+  
+  // Need at least 3 evidence records with actual content,
+  // OR if the candidate genuinely can't answer anything, allow after enough attempts
+  if (meaningfulEvidence.length >= 3) return true;
+  
+  // Safety valve: if we've asked 12+ questions and still no meaningful evidence,
+  // the interview has been thorough enough
+  if (state.questionCount >= 12) return true;
+  
+  return false;
+}
+
 // ─── Phase Progression ─────────────────────────────────────────────
 
 function progressPhase(state: InterviewState): InterviewState {
   const q = state.questionCount;
   const days = new Set(state.curriculumDaysCovered).size;
 
-  // Phase transitions should be organic, not rigidly forced by question count.
-  // We want to encourage deep follow-ups rather than rushing through phases.
   const phaseRules: [boolean, InterviewPhase][] = [
     [q <= 1, 'WARM_UP'],
-    [q >= 8 && days >= 4, 'SYSTEM_DESIGN'], // Only push to system design when near the end
+    [q >= 8 && days >= 4, 'SYSTEM_DESIGN'],
   ];
 
   for (const [condition, phase] of phaseRules) {
@@ -234,7 +312,6 @@ function progressPhase(state: InterviewState): InterviewState {
     }
   }
   
-  // Default to DEEP_DIVE for the meat of the interview, allowing Gemini to freely follow up
   if (state.phase !== 'DEEP_DIVE') {
     return transitionPhase(state, 'DEEP_DIVE');
   }
