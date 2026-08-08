@@ -128,10 +128,10 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
                     </div>
                     <div>
                       <CardTitle className="text-lg">Day {record.day}: {record.topic}</CardTitle>
-                      <CardDescription className="flex gap-2 mt-1">
+                      <div className="text-sm text-muted-foreground flex gap-2 mt-1">
                         <Badge variant="secondary" className="text-[10px]">{record.questionType}</Badge>
                         <Badge variant="outline" className="text-[10px] capitalize">{record.difficulty}</Badge>
-                      </CardDescription>
+                      </div>
                     </div>
                   </div>
                   <Button 
