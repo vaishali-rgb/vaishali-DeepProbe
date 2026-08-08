@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import type { CandidateProfile } from "@/lib/types/candidate"
 
+import KineticGrid from "@/components/ui/kinetic-grid"
+
 export default function LobbyPage(props: { params: Promise<{ candidateId: string }> }) {
   const params = use(props.params)
   const router = useRouter()
@@ -89,19 +91,9 @@ export default function LobbyPage(props: { params: Promise<{ candidateId: string
   const skippedMissions = missions.filter(m => m.skipped)
 
   return (
-    <section className="relative min-h-screen w-full font-sans text-white bg-black">
-      {/* Video Background */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="fixed inset-0 h-full w-full object-cover z-0"
-        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260803_192301_9231ed6b-c55c-4a48-909c-4ebe11cf2e11.mp4"
-      />
-      
+    <KineticGrid globalColor="default" className="font-sans">
       {/* Content Overlay */}
-      <div className="relative z-10 flex h-full flex-col p-6 py-12">
+      <div className="relative z-10 flex h-full flex-col p-6 py-12 min-h-screen">
         <main className="container mx-auto max-w-4xl">
           <button 
             onClick={() => router.push("/")}
@@ -235,6 +227,6 @@ export default function LobbyPage(props: { params: Promise<{ candidateId: string
           </motion.div>
         </main>
       </div>
-    </section>
+    </KineticGrid>
   )
 }

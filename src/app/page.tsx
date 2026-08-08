@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown, Menu, X, ShieldCheck, User } from "lucide-react"
+import KineticGrid from "@/components/ui/kinetic-grid"
 
 interface CandidateSummary {
   id: string
@@ -64,19 +65,9 @@ export default function Home() {
   }
 
   return (
-    <section className="relative h-screen w-full overflow-hidden bg-black font-sans">
-      {/* Video Background */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 h-full w-full object-cover"
-        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260803_192301_9231ed6b-c55c-4a48-909c-4ebe11cf2e11.mp4"
-      />
-      
+    <KineticGrid globalColor="default" className="font-sans">
       {/* Content Overlay */}
-      <div className="relative z-10 flex h-full flex-col">
+      <div className="relative z-10 flex h-full flex-col min-h-screen">
         {/* Navbar */}
         <nav className="flex items-center justify-between p-5 sm:px-8 sm:py-6 lg:px-12">
           {/* Logo */}
@@ -283,6 +274,6 @@ export default function Home() {
            </div>
         </main>
       </div>
-    </section>
+    </KineticGrid>
   )
 }
