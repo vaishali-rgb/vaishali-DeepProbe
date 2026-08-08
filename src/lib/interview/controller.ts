@@ -27,7 +27,6 @@ import {
 
 import { generateOpeningQuestion, generateInterviewResponse } from '@/lib/gemini/interviewer';
 import { generateFinalFeedback } from '@/lib/gemini/evaluator';
-import { saveCandidateMemory, retrieveCandidateMemory } from '@/lib/breeth/memory';
 
 // ─── Start Interview ───────────────────────────────────────────────
 
@@ -46,17 +45,12 @@ export async function startInterview(
 
   // 4. Build context for opening question
   let context = buildInterviewContext(state);
-  
-  // 4b. Inject Breeth Memory
-  const pastMemory = await retrieveCandidateMemory(candidateData.member.id);
-  if (pastMemory) {
-    context += `\n\n=== PAST MEMORY ===\n${pastMemory}`;
-  }
 
   // 5. Get opening question from Gemini
   const opening = await generateOpeningQuestion(context);
 
   // 6. Update state with the interviewer's opening message
+  state.questionsAsked = [...state.questionsAsked, opening.question.text];
   state = addMessage(state, 'interviewer', opening.question.text);
   state = transitionPhase(state, 'WARM_UP');
 
@@ -92,12 +86,6 @@ export async function processAnswer(
 
   // 4. Build compressed context
   let context = buildInterviewContext(state);
-  
-  // 4b. Inject Breeth Memory
-  const pastMemory = await retrieveCandidateMemory(state.candidateData.member.id);
-  if (pastMemory) {
-    context += `\n\n=== PAST MEMORY ===\n${pastMemory}`;
-  }
 
   // 5. Get Gemini's RECOMMENDATION (evaluation + next question + decision)
   const geminiResponse = await generateInterviewResponse(context, message);
@@ -128,7 +116,6 @@ export async function processAnswer(
   // 9. Store important claims
   if (geminiResponse.importantClaim) {
     state = addImportantClaim(state, geminiResponse.importantClaim);
-    await saveCandidateMemory(state.candidateData.member.id, `Candidate made an important claim: ${geminiResponse.importantClaim}`);
   }
 
   // 10. Update per-topic knowledge state
@@ -262,6 +249,7 @@ export async function processAnswer(
   }
 
   // 13. Add interviewer message
+  state.questionsAsked = [...state.questionsAsked, replyText];
   state = addMessage(state, 'interviewer', replyText);
 
   // 14. Save state
@@ -272,16 +260,12 @@ export async function processAnswer(
 
 // ─── Finish Interview ──────────────────────────────────────────────
 
-async function finishInterview(
+export async function finishInterview(
   sessionId: string,
   state: InterviewState
 ): Promise<InterviewResponse> {
   // Generate final feedback
   const feedback = await generateFinalFeedback(state);
-
-  // Persist the final evaluation to Breeth Memory
-  const finalEvalStr = `Final Interview Feedback:\nSummary: ${feedback.summary}\nStrengths: ${feedback.technicalStrengths.join(', ')}\nGaps: ${feedback.technicalGaps.join(', ')}\nNext Steps: ${feedback.recommendedNextSteps.join(', ')}`;
-  await saveCandidateMemory(state.candidateData.member.id, finalEvalStr);
 
   // Mark completed
   state = markCompleted(state);

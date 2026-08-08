@@ -2,9 +2,11 @@
 // Contract defined in technical-spec.md — DO NOT MODIFY
 
 import { NextRequest, NextResponse } from 'next/server';
-import { startInterview, processAnswer, SessionError } from '@/lib/interview/controller';
+import { startInterview, processAnswer, finishInterview, SessionError } from '@/lib/interview/controller';
 import { sessionManager } from '@/lib/interview/session-manager';
 import type { InterviewResponse, ErrorResponse } from '@/lib/types/api';
+
+export const maxDuration = 60; // Allow up to 60 seconds for Gemini API calls on Vercel
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,8 +43,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result);
     }
 
+    // Route: Early Exit request
+    if (body.action === 'end') {
+      let state = sessionManager.get(sessionId);
+      if (!state) return errorResponse('Session not found', 'SESSION_NOT_FOUND', 404);
+      
+      const result: InterviewResponse = await finishInterview(sessionId, state);
+      return NextResponse.json(result);
+    }
+
     return errorResponse(
-      'Request must contain either "candidate" (to start) or "message" (to continue)',
+      'Request must contain "candidate" (to start), "message" (to continue), or "action" (to end)',
       'INVALID_REQUEST',
       400
     );

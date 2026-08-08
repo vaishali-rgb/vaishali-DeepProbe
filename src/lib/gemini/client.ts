@@ -53,6 +53,9 @@ function getClient(): GoogleGenerativeAI {
   return client;
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const timeoutPromise = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error('LLM Timeout')), ms));
+
 export async function generateJSON<T>(
   systemPrompt: string,
   userPrompt: string
@@ -77,14 +80,20 @@ export async function generateJSON<T>(
           systemInstruction: { role: 'model', parts: [{ text: systemPrompt }] },
         }),
         timeoutPromise(LLM_TIMEOUT_MS),
-      ]);
+      ]) as any;
 
       const text = result.response.text();
-      return parseJSONResponse<T>(text);
+      return JSON.parse(text) as T;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      
       if (attempt < LLM_MAX_RETRIES) {
-        await sleep(1000 * (attempt + 1)); // backoff
+        // Parse Google's RetryInfo if available (e.g. "retryDelay":"15s")
+        const match = lastError.message.match(/retryDelay":"(\d+)s"/);
+        let waitMs = match ? parseInt(match[1], 10) * 1000 : (attempt + 1) * 5000;
+        
+        console.warn(`[API Rate Limit/Error] Attempt ${attempt + 1} failed. Retrying in ${waitMs / 1000}s...`);
+        await sleep(waitMs);
       }
     }
   }
@@ -144,14 +153,4 @@ function parseJSONResponse<T>(text: string): T {
     }
     throw new Error(`Failed to parse JSON from Gemini response: ${text.slice(0, 200)}`);
   }
-}
-
-function timeoutPromise(ms: number): Promise<never> {
-  return new Promise((_, reject) =>
-    setTimeout(() => reject(new Error(`Gemini request timed out after ${ms}ms`)), ms)
-  );
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }

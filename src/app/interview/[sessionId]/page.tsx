@@ -27,6 +27,8 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const [isDone, setIsDone] = useState(false)
+  const [isEvaluating, setIsEvaluating] = useState(false)
+  const [showEndConfirm, setShowEndConfirm] = useState(false)
   
   // Stats
   const [questionsCount, setQuestionsCount] = useState(0)
@@ -129,6 +131,7 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
       
       if (data.done) {
         setIsDone(true)
+        setIsEvaluating(true)
         // Store feedback for results page
         if (data.feedback) {
           sessionStorage.setItem(`interview_${params.sessionId}_feedback`, JSON.stringify(data.feedback))
@@ -137,10 +140,40 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
         // Wait a moment then go to results
         setTimeout(() => {
           router.push(`/results/${params.sessionId}`)
-        }, 3000)
+        }, 2000)
       }
     } catch (err) {
       console.error("Failed to send message", err)
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
+  const handleEndInterview = async () => {
+    setIsEvaluating(true)
+    setShowEndConfirm(false)
+    try {
+      const res = await fetch("/api/interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: params.sessionId,
+          action: "end"
+        })
+      })
+      const data = await res.json()
+      if (data.done) {
+        setIsDone(true)
+        if (data.feedback) {
+          sessionStorage.setItem(`interview_${params.sessionId}_feedback`, JSON.stringify(data.feedback))
+        }
+        setTimeout(() => {
+          router.push(`/results/${params.sessionId}`)
+        }, 1000)
+      }
+    } catch (err) {
+      console.error(err)
+      setIsEvaluating(false)
     } finally {
       setIsTyping(false)
     }
@@ -174,12 +207,17 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
           </div>
         </div>
         
-        <div className="w-full md:w-1/3 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-white/70">Interview Progress</span>
-            <span className="font-medium text-white">{questionsCount} / 8+ Qs</span>
+        <div className="flex items-center gap-4 w-full md:w-1/2 lg:w-1/3 justify-end">
+          <div className="w-full space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-white/70">Progress</span>
+              <span className="font-medium text-white">{questionsCount} / 8+ Qs</span>
+            </div>
+            <Progress value={progressPercent} className="h-2 bg-white/20" />
           </div>
-          <Progress value={progressPercent} className="h-2 bg-white/20" />
+          <Button variant="destructive" size="sm" onClick={() => setShowEndConfirm(true)} disabled={isDone || isTyping} className="shrink-0">
+            End
+          </Button>
         </div>
       </div>
 
@@ -305,6 +343,64 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
       </Card>
         </main>
       </div>
+
+      <AnimatePresence>
+        {isEvaluating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl"
+          >
+            <div className="relative flex flex-col items-center">
+              {/* Spinning rings */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-32 h-32 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <div className="absolute w-24 h-24 border-4 border-secondary/30 border-b-secondary rounded-full animate-spin direction-reverse"></div>
+              </div>
+              <Bot className="w-10 h-10 text-white z-10 animate-pulse" />
+            </div>
+            
+            <h2 className="mt-12 text-2xl font-bold text-white tracking-tight animate-pulse">
+              Generating Final Evaluation
+            </h2>
+            <p className="mt-2 text-white/60 text-sm max-w-sm text-center">
+              Analyzing your technical responses, scoring evidence against the curriculum, and formulating feedback...
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showEndConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-black border border-white/20 rounded-2xl p-6 max-w-md w-full text-white shadow-2xl"
+            >
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-destructive" /> End Interview
+              </h2>
+              <p className="text-white/80 mb-6">
+                Are you sure you want to end the interview now?
+                <br/><br/>
+                • Questions Asked: <strong className="text-white">{questionsCount}</strong><br/>
+                • Questions Remaining: <strong className="text-white">{Math.max(8 - questionsCount, 0)}</strong>
+                <br/><br/>
+                The AI will generate your final evaluation based on the evidence collected so far.
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" className="text-white border-white/20 hover:bg-white/10 hover:text-white" onClick={() => setShowEndConfirm(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={handleEndInterview} disabled={isTyping}>
+                  {isTyping ? "Ending..." : "End Interview"}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </KineticGrid>
   )
 }

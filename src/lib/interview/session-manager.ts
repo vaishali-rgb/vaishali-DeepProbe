@@ -34,4 +34,11 @@ class SessionStore {
 }
 
 // Singleton — persists across API calls in the same server process
-export const sessionManager = new SessionStore();
+declare global {
+  var _sessionManager: SessionStore | undefined;
+}
+
+export const sessionManager = globalThis._sessionManager || new SessionStore();
+if (process.env.NODE_ENV !== 'production') {
+  globalThis._sessionManager = sessionManager;
+}
