@@ -208,19 +208,22 @@ function progressPhase(state: InterviewState): InterviewState {
   const q = state.questionCount;
   const days = new Set(state.curriculumDaysCovered).size;
 
-  // Phase transitions based on interview progress
+  // Phase transitions should be organic, not rigidly forced by question count.
+  // We want to encourage deep follow-ups rather than rushing through phases.
   const phaseRules: [boolean, InterviewPhase][] = [
     [q <= 1, 'WARM_UP'],
-    [q <= 3, 'FUNDAMENTALS'],
-    [q <= 5, 'DEEP_DIVE'],
-    [q <= 7, 'FOLLOW_UP'],
-    [q >= 8 && days >= 4, 'SYSTEM_DESIGN'],
+    [q >= 8 && days >= 4, 'SYSTEM_DESIGN'], // Only push to system design when near the end
   ];
 
   for (const [condition, phase] of phaseRules) {
     if (condition && state.phase !== phase) {
       return transitionPhase(state, phase);
     }
+  }
+  
+  // Default to DEEP_DIVE for the meat of the interview, allowing Gemini to freely follow up
+  if (state.phase !== 'DEEP_DIVE') {
+    return transitionPhase(state, 'DEEP_DIVE');
   }
 
   return state;

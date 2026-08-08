@@ -51,16 +51,16 @@ export function getCoverageConstraintText(state: InterviewState): string {
   const parts: string[] = [];
 
   if (status.questionsNeeded > 0) {
-    parts.push(`Need ${status.questionsNeeded} more question(s)`);
+    parts.push(`Need ${status.questionsNeeded} more conversational turn(s)/question(s)`);
   }
   if (status.daysNeeded > 0) {
-    parts.push(`Need ${status.daysNeeded} more curriculum day(s)`);
+    parts.push(`Need to cover ${status.daysNeeded} more distinct curriculum day(s)`);
   }
   if (status.uncoveredPlannedDays.length > 0) {
-    parts.push(`Uncovered planned days: ${status.uncoveredPlannedDays.join(', ')}`);
+    parts.push(`Planned days you should steer towards eventually: ${status.uncoveredPlannedDays.join(', ')}`);
   }
 
   return parts.length > 0
-    ? `COVERAGE NOT MET: ${parts.join('. ')}. DO NOT end the interview.`
+    ? `COVERAGE NOT MET: ${parts.join('. ')}. DO NOT end the interview. Follow-up questions DO count towards the question total, so prioritize deep follow-ups over jumping to new days.`
     : 'Coverage requirements met. Interview may conclude when sufficient evidence is gathered.';
 }

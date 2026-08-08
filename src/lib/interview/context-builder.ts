@@ -141,9 +141,7 @@ function buildConstraintsSection(state: InterviewState): string {
 function getPhaseGuidance(state: InterviewState): string {
   const phaseMap: Record<string, string> = {
     WARM_UP: 'Ask about the candidate\'s projects and learning journey. Start with open-ended, project-based questions.',
-    FUNDAMENTALS: 'Test core conceptual understanding of the current topic. Use conceptual and why/how questions.',
-    DEEP_DIVE: 'Probe deeper based on previous answers. Use scenario, debugging, and architecture questions.',
-    FOLLOW_UP: 'Challenge weak or incomplete previous answers. Probe gaps and misconceptions.',
+    DEEP_DIVE: 'INTERACTIVE PHASE: You MUST ask follow-up questions to probe their previous answer. Do not jump to a new topic until you have explored their current answer deeply. Use clarify, challenge, or scenario follow-ups.',
     SYSTEM_DESIGN: 'Give practical engineering scenarios. Test architectural thinking and production readiness.',
     FINAL_ASSESSMENT: 'Wrap up the interview. Generate final assessment.',
   };
