@@ -1,0 +1,234 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { motion } from "framer-motion"
+import { ArrowLeft, Play, User, Brain, ShieldAlert, CheckCircle2 } from "lucide-react"
+import { use } from "react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import type { CandidateProfile } from "@/lib/types/candidate"
+
+export default function LobbyPage(props: { params: Promise<{ candidateId: string }> }) {
+  const params = use(props.params)
+  const router = useRouter()
+  const [candidate, setCandidate] = useState<CandidateProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [starting, setStarting] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/candidates/${params.candidateId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setCandidate(data)
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error("Failed to load candidate", err)
+        setLoading(false)
+      })
+  }, [params.candidateId])
+
+  const handleStartInterview = async () => {
+    if (!candidate) return
+    setStarting(true)
+    
+    // Generate a random session ID
+    const sessionId = Math.random().toString(36).substring(2, 15)
+    
+    try {
+      const res = await fetch("/api/interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          candidate
+        })
+      })
+      
+      if (res.ok) {
+        // We'll pass the initial AI message via URL or session storage 
+        // to the live interview page, or just have it re-fetch.
+        // For simplicity, we just navigate to the interview page.
+        sessionStorage.setItem(`interview_${sessionId}_initial`, JSON.stringify(await res.json()))
+        router.push(`/interview/${sessionId}`)
+      } else {
+        console.error("Failed to start interview")
+        setStarting(false)
+      }
+    } catch (err) {
+      console.error(err)
+      setStarting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  if (!candidate) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <h2 className="text-2xl font-bold text-destructive mb-4">Candidate Not Found</h2>
+        <Button onClick={() => router.push("/")} variant="outline">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Candidates
+        </Button>
+      </div>
+    )
+  }
+
+  const { member, signals, missions } = candidate
+  const passedMissions = missions.filter(m => m.passed)
+  const failedMissions = missions.filter(m => m.passed === false && !m.skipped)
+  const skippedMissions = missions.filter(m => m.skipped)
+
+  return (
+    <main className="container mx-auto max-w-4xl p-6 py-12">
+      <Button 
+        variant="ghost" 
+        onClick={() => router.push("/")}
+        className="mb-8 text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Candidate Selection
+      </Button>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
+        {/* Left Column - Start Action */}
+        <div className="md:col-span-1 space-y-6">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-xl">Interview Lobby</CardTitle>
+              <CardDescription>
+                Ready to begin the AI engineering technical assessment?
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                className="w-full h-14 text-lg font-semibold relative overflow-hidden group"
+                onClick={handleStartInterview}
+                disabled={starting}
+              >
+                {starting ? (
+                  <span className="flex items-center">
+                    <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin mr-2" />
+                    Initializing AI...
+                  </span>
+                ) : (
+                  <>
+                    <span className="relative z-10 flex items-center">
+                      <Play className="w-5 h-5 mr-2 fill-current" /> Begin Interview
+                    </span>
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Brain className="w-4 h-4 text-primary" /> Key Signals
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50">
+                <span className="text-muted-foreground">Completion Rate</span>
+                <span className="font-semibold">{Math.round((signals.missionsCompleted / 31) * 100)}%</span>
+              </div>
+              <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50">
+                <span className="text-muted-foreground">First-Try Rate</span>
+                <span className="font-semibold">{Math.round((signals.missionsFirstTry / Math.max(1, signals.missionsCompleted)) * 100)}%</span>
+              </div>
+              <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50">
+                <span className="text-muted-foreground">Active Days</span>
+                <span className="font-semibold">{signals.commitDays} / 31</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Candidate Brief */}
+        <div className="md:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-3xl mb-2 flex items-center gap-3">
+                    <User className="w-8 h-8 text-primary" />
+                    {member.name}
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    {member.jobRole} • {member.yearsExperience} years experience
+                  </CardDescription>
+                </div>
+                <Badge variant={member.status === 'Active' ? 'success' : 'secondary'} className="text-sm px-3 py-1">
+                  {member.status}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="glass p-4 rounded-xl border border-border/50">
+                  <p className="text-sm text-muted-foreground mb-1">Education</p>
+                  <p className="font-medium">{member.education}</p>
+                </div>
+                <div className="glass p-4 rounded-xl border border-border/50">
+                  <p className="text-sm text-muted-foreground mb-1">Total Missions</p>
+                  <p className="font-medium">{missions.length}</p>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Mission Highlights</h3>
+              
+              <div className="space-y-4">
+                {passedMissions.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-emerald-400 flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="w-4 h-4" /> Strongly Grasped
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {passedMissions.slice(0, 6).map(m => (
+                        <Badge key={m.day} variant="outline" className="bg-emerald-500/10 border-emerald-500/20">
+                          Day {m.day}: {m.title}
+                        </Badge>
+                      ))}
+                      {passedMissions.length > 6 && (
+                        <Badge variant="outline" className="bg-secondary/50">+{passedMissions.length - 6} more</Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {failedMissions.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-destructive flex items-center gap-2 mb-2 mt-4">
+                      <ShieldAlert className="w-4 h-4" /> Areas for Review
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {failedMissions.map(m => (
+                        <Badge key={m.day} variant="outline" className="bg-destructive/10 border-destructive/20">
+                          Day {m.day}: {m.title}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </motion.div>
+    </main>
+  )
+}
