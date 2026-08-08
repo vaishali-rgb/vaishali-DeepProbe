@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const LLM_TIMEOUT_MS = 45000;
 const LLM_MAX_RETRIES = 1;
-const MODEL_NAME = 'gemini-2.5-flash';
+const MODEL_NAME = 'gemini-3.6-flash';
 
 let genAI: GoogleGenerativeAI | null = null;
 
