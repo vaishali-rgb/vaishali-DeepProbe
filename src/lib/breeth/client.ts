@@ -51,6 +51,11 @@ export async function retrieveMemory(query: string, filter: Record<string, any> 
       })
     });
 
+    if (response.status === 404) {
+      // No memory found for this filter, perfectly normal.
+      return [];
+    }
+
     if (!response.ok) {
       throw new Error(`Breeth API error: ${response.statusText}`);
     }
