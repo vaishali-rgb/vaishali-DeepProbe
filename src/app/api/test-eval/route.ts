@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextResponse } from 'next/server';
 import { generateFinalFeedback } from '@/lib/gemini/evaluator';
 import type { InterviewState } from '@/lib/types/interview';

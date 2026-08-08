@@ -2,7 +2,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const LLM_TIMEOUT_MS = 55000;
+const LLM_TIMEOUT_MS = 45000;
 const LLM_MAX_RETRIES = 3;
 const MODEL_NAME = 'gemini-3.6-flash';
 
@@ -122,7 +122,7 @@ export async function generateText(
           systemInstruction: { role: 'model', parts: [{ text: systemPrompt }] },
         }),
         timeoutPromise(LLM_TIMEOUT_MS),
-      ]) as any;
+      ]);
 
       return result.response.text();
     } catch (error) {

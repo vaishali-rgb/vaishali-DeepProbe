@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { speechToText } from "@/lib/sarvam/client"
 
-export const maxDuration = 60;
-
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
