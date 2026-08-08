@@ -22,7 +22,7 @@ interface CandidateSummary {
   skippedCount: number
 }
 
-const navLinks = ['Modules', 'Clientele', 'Solutions', 'Billing']
+const navLinks = ['Curriculum', 'Evaluation Rubric', 'User Guide']
 
 export default function Home() {
   const router = useRouter()
@@ -76,24 +76,22 @@ export default function Home() {
         <nav className="flex items-center justify-between p-5 sm:px-8 sm:py-6 lg:px-12">
           {/* Logo */}
           <div className="flex items-center gap-2 text-[#010101] lg:text-white transition-colors duration-500">
-            <svg viewBox="0 0 256 256" className="h-6 w-6 fill-current">
-              <path d="M 128 128 C 128 198.692 70.692 256 0 256 C 0 185.308 57.308 128 128 128 Z M 128 128 C 198.692 128 256 185.308 256 256 C 185.308 256 128 198.692 128 128 Z M 0 0 C 70.692 0 128 57.308 128 128 C 57.308 128 0 70.692 0 0 Z M 256 0 C 256 70.692 198.692 128 128 128 C 128 57.308 185.308 0 256 0 Z" />
-            </svg>
-            <span className="text-lg font-semibold tracking-tight">nexum</span>
+            <ShieldCheck className="h-6 w-6 text-white" />
+            <span className="text-lg font-semibold tracking-tight">AI Interviewer</span>
           </div>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-3">
              <div className="flex items-center gap-1 rounded-full bg-black/50 px-1.5 py-1.5 backdrop-blur-xl border border-white/10">
-               {navLinks.map(link => (
-                  <button key={link} className="flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
-                    {link}
-                    {link === 'Solutions' && <ChevronDown className="h-3.5 w-3.5" />}
-                  </button>
-               ))}
+                <button className="flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
+                  Curriculum
+                </button>
+                <button className="flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
+                  Evaluation Rubric
+                </button>
              </div>
              <button className="self-stretch rounded-full px-5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ background: 'linear-gradient(to bottom, #2B2B2B, #101010)' }}>
-               Get started
+               User Guide
              </button>
           </div>
 
@@ -141,7 +139,6 @@ export default function Home() {
                        className="flex items-center justify-between rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white text-left"
                      >
                        {link}
-                       {link === 'Solutions' && <ChevronDown className="h-4 w-4" />}
                      </motion.button>
                    ))}
                  </div>
@@ -154,12 +151,6 @@ export default function Home() {
                    transition={{ delay: 0.3, duration: 0.4 }}
                    className="mt-auto px-6 pb-10"
                  >
-                   <button 
-                     className="w-full rounded-full py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
-                     style={{ background: 'linear-gradient(to bottom, #2B2B2B, #101010)' }}
-                   >
-                     Get started
-                   </button>
                  </motion.div>
               </motion.div>
             </>
