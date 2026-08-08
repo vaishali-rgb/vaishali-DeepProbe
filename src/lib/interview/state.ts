@@ -166,6 +166,12 @@ export function updateTopicKnowledge(
     (existing.knowledgeState === 'UNKNOWN' || existing.knowledgeState === 'WEAK') &&
     (newKnowledge === 'PARTIAL' || newKnowledge === 'COMPETENT' || newKnowledge === 'STRONG');
 
+  // Count as diagnostic attempt if the answer was weak/unknown, regardless of Gemini's label
+  // This is the controller's ground truth — not Gemini's self-classification
+  const isWeakAnswer = newKnowledge === 'UNKNOWN' || newKnowledge === 'WEAK';
+  const wasPreviouslyWeak = existing && (existing.knowledgeState === 'UNKNOWN' || existing.knowledgeState === 'WEAK');
+  const isDiagnosticAttempt = isWeakAnswer && (decision === 'diagnostic' || wasPreviouslyWeak);
+
   const updated: TopicEvidence = {
     curriculumDay,
     topic,
@@ -182,7 +188,7 @@ export function updateTopicKnowledge(
       ...(existing?.misconceptions ?? []),
       ...evaluation.misconceptions,
     ],
-    diagnosticAttempts: (existing?.diagnosticAttempts ?? 0) + (decision === 'diagnostic' ? 1 : 0),
+    diagnosticAttempts: (existing?.diagnosticAttempts ?? 0) + (isDiagnosticAttempt ? 1 : 0),
     recoveryAttempts: (existing?.recoveryAttempts ?? 0) + (isRecovery ? 1 : 0),
     followUpsUsed: (existing?.followUpsUsed ?? 0) + (
       decision === 'follow_up' || decision === 'clarify' || decision === 'challenge' ? 1 : 0

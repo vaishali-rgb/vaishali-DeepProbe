@@ -209,11 +209,15 @@ export async function processAnswer(
   let replyText = geminiResponse.question.text;
   if (enforcedDecision !== geminiResponse.decision) {
     console.log(`[Controller] Decision overridden: ${geminiResponse.decision} → ${enforcedDecision}. Regenerating question.`);
-    const overrideHint = enforcedDecision === 'diagnostic'
-      ? `\n\nCONTROLLER OVERRIDE: You MUST ask a DIAGNOSTIC question. Simplify the current topic to a fundamental concept. Do NOT change to a new topic.`
-      : enforcedDecision === 'new_topic'
-      ? `\n\nCONTROLLER OVERRIDE: You MUST move to a NEW TOPIC. The current topic has been sufficiently explored.`
-      : '';
+    
+    let overrideHint = '';
+    if (enforcedDecision === 'diagnostic') {
+      overrideHint = `\n\nCONTROLLER OVERRIDE: You MUST ask a DIAGNOSTIC question. Simplify the current topic "${currentTopic}" to a high-level fundamental concept. Do NOT change to a new topic. Ask something a beginner could answer.`;
+    } else if (enforcedDecision === 'new_topic') {
+      const nextDay = getNextSuggestedDay(state);
+      const nextDayInfo = nextDay ? `Switch to curriculum Day ${nextDay}.` : 'Pick a completely different curriculum area.';
+      overrideHint = `\n\nCONTROLLER OVERRIDE: You MUST move to a COMPLETELY DIFFERENT topic. The candidate has been unable to answer questions about "${currentTopic}" after multiple attempts. ${nextDayInfo} Do NOT ask anything related to "${currentTopic}".`;
+    }
 
     const overrideContext = buildInterviewContext(state) + overrideHint;
     const overrideResponse = await generateInterviewResponse(overrideContext, message);
