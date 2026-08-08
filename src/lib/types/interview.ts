@@ -23,7 +23,9 @@ export type QuestionType =
   | 'why_how'
   | 'project_based'
   | 'system_design'
-  | 'follow_up';
+  | 'follow_up'
+  | 'diagnostic'
+  | 'recovery';
 
 export type UnderstandingLevel = 'none' | 'partial' | 'solid' | 'deep';
 
@@ -32,6 +34,8 @@ export type DecisionAction =
   | 'new_topic'
   | 'clarify'
   | 'challenge'
+  | 'diagnostic'
+  | 'recovery'
   | 'complete';
 
 // Evidence record — stored per question
@@ -58,6 +62,29 @@ export interface QuestionReason {
   basedOn: string;
   learningObjective: string;
   goal: string;
+}
+
+// Knowledge state per topic — tracks the candidate's demonstrated understanding
+export type KnowledgeState =
+  | 'UNTESTED'
+  | 'UNKNOWN'
+  | 'WEAK'
+  | 'PARTIAL'
+  | 'COMPETENT'
+  | 'STRONG';
+
+// Per-topic evidence tracker
+export interface TopicEvidence {
+  curriculumDay: number;
+  topic: string;
+  knowledgeState: KnowledgeState;
+  evidence: string[];
+  gaps: string[];
+  misconceptions: string[];
+  diagnosticAttempts: number;
+  recoveryAttempts: number;
+  followUpsUsed: number;
+  lastQuestionType: QuestionType;
 }
 
 // Chat message
@@ -119,6 +146,9 @@ export interface InterviewState {
   misconceptions: string[];
   importantClaims: string[];
 
+  // Knowledge state per topic
+  topicKnowledge: Record<string, TopicEvidence>;
+
   // Repetition prevention
   questionsAsked: string[];
 
@@ -140,3 +170,5 @@ export const MIN_QUESTIONS = 8;
 export const MIN_CURRICULUM_DAYS = 4;
 export const MAX_RECENT_MESSAGES = 6; // 3 pairs of Q&A
 export const DEFAULT_DIFFICULTY: Difficulty = 'medium';
+export const MAX_FOLLOWUPS_PER_TOPIC = 3;
+export const MAX_DIAGNOSTIC_ATTEMPTS = 2;

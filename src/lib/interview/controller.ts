@@ -21,6 +21,7 @@ import {
   transitionPhase,
   addImportantClaim,
   markCompleted,
+  updateTopicKnowledge,
 } from './state';
 
 import { generateOpeningQuestion, generateInterviewResponse } from '@/lib/gemini/interviewer';
@@ -127,6 +128,17 @@ export async function processAnswer(
     // Write claim directly to persistent memory
     await saveCandidateMemory(state.candidateData.member.id, `Candidate made an important claim: ${geminiResponse.importantClaim}`);
   }
+
+  // 9b. Update per-topic knowledge state
+  const responseTopic = geminiResponse.question.topic || 'General';
+  state = updateTopicKnowledge(
+    state,
+    responseTopic,
+    geminiResponse.question.curriculumDay || getCurrentDay(state),
+    geminiResponse.evaluation,
+    geminiResponse.question.type,
+    geminiResponse.decision
+  );
 
   // 10. COVERAGE GUARD — override Gemini if needed
   const coverageMet = canFinishInterview(state);

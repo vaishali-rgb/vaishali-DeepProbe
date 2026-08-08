@@ -11,6 +11,8 @@ import type {
   Difficulty,
   DifficultyTrajectory,
   DEFAULT_DIFFICULTY,
+  KnowledgeState,
+  TopicEvidence,
 } from '@/lib/types/interview';
 import { MAX_RECENT_MESSAGES } from '@/lib/types/interview';
 
@@ -39,6 +41,8 @@ export function createInitialState(
     weaknesses: [],
     misconceptions: [],
     importantClaims: [],
+
+    topicKnowledge: {},
 
     questionsAsked: [],
     recentMessages: [],
@@ -134,4 +138,61 @@ export function addImportantClaim(
 
 export function markCompleted(state: InterviewState): InterviewState {
   return { ...state, status: 'completed', phase: 'FINAL_ASSESSMENT', updatedAt: new Date().toISOString() };
+}
+
+// ─── Topic Knowledge Tracking ─────────────────────────────────────
+
+function scoreToKnowledgeState(score: number, understanding: string): KnowledgeState {
+  if (score <= 1 || understanding === 'none') return 'UNKNOWN';
+  if (score <= 3) return 'WEAK';
+  if (score <= 5) return 'PARTIAL';
+  if (score <= 7) return 'COMPETENT';
+  return 'STRONG';
+}
+
+export function updateTopicKnowledge(
+  state: InterviewState,
+  topic: string,
+  curriculumDay: number,
+  evaluation: EvidenceRecord['evaluation'],
+  questionType: EvidenceRecord['questionType'],
+  decision: string
+): InterviewState {
+  const existing = state.topicKnowledge[topic];
+  const newKnowledge = scoreToKnowledgeState(evaluation.score, evaluation.understanding);
+
+  // If knowledge improved from a previous weak/unknown state, that's a recovery
+  const isRecovery = existing &&
+    (existing.knowledgeState === 'UNKNOWN' || existing.knowledgeState === 'WEAK') &&
+    (newKnowledge === 'PARTIAL' || newKnowledge === 'COMPETENT' || newKnowledge === 'STRONG');
+
+  const updated: TopicEvidence = {
+    curriculumDay,
+    topic,
+    knowledgeState: newKnowledge,
+    evidence: [
+      ...(existing?.evidence ?? []),
+      ...evaluation.strengths,
+    ],
+    gaps: [
+      ...(existing?.gaps ?? []),
+      ...evaluation.gaps,
+    ],
+    misconceptions: [
+      ...(existing?.misconceptions ?? []),
+      ...evaluation.misconceptions,
+    ],
+    diagnosticAttempts: (existing?.diagnosticAttempts ?? 0) + (decision === 'diagnostic' ? 1 : 0),
+    recoveryAttempts: (existing?.recoveryAttempts ?? 0) + (isRecovery ? 1 : 0),
+    followUpsUsed: (existing?.followUpsUsed ?? 0) + (
+      decision === 'follow_up' || decision === 'clarify' || decision === 'challenge' ? 1 : 0
+    ),
+    lastQuestionType: questionType,
+  };
+
+  return {
+    ...state,
+    topicKnowledge: { ...state.topicKnowledge, [topic]: updated },
+    updatedAt: new Date().toISOString(),
+  };
 }

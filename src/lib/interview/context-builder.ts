@@ -1,8 +1,9 @@
 // Context builder — compresses interview state into ~1200 tokens for Gemini
 // This is the core innovation: Gemini never sees the full transcript
 
-import type { InterviewState } from '@/lib/types/interview';
+import type { InterviewState, TopicEvidence } from '@/lib/types/interview';
 import type { CurriculumDay } from '@/lib/types/curriculum';
+import { MAX_FOLLOWUPS_PER_TOPIC, MAX_DIAGNOSTIC_ATTEMPTS } from '@/lib/types/interview';
 import { getDayByNumber, getModuleForDay } from '@/lib/curriculum/retriever';
 import { getEvidenceSummary, getFollowUpOpportunities } from './evidence';
 import { getCoverageConstraintText } from './coverage-guard';
@@ -17,6 +18,7 @@ export function buildInterviewContext(
 
   sections.push(buildCandidateSection(state));
   sections.push(buildInterviewStatusSection(state));
+  sections.push(buildTopicKnowledgeSection(state));
   sections.push(buildCurriculumSection(state, targetDay));
   sections.push(buildEvidenceSection(state));
   sections.push(buildRecentConversationSection(state));
@@ -146,4 +148,35 @@ function getPhaseGuidance(state: InterviewState): string {
     FINAL_ASSESSMENT: 'Wrap up the interview. Generate final assessment.',
   };
   return phaseMap[state.phase] ?? '';
+}
+
+function buildTopicKnowledgeSection(state: InterviewState): string {
+  const topics = Object.values(state.topicKnowledge);
+  if (topics.length === 0) return '';
+
+  const lines: string[] = ['=== CANDIDATE KNOWLEDGE MAP ==='];
+
+  for (const t of topics) {
+    const depthBudgetLeft = MAX_FOLLOWUPS_PER_TOPIC - t.followUpsUsed;
+    const diagnosticBudgetLeft = MAX_DIAGNOSTIC_ATTEMPTS - t.diagnosticAttempts;
+
+    let status = `${t.topic} (Day ${t.curriculumDay}): ${t.knowledgeState}`;
+    
+    if (t.recoveryAttempts > 0) {
+      status += ` [RECOVERED from weak start]`;
+    }
+    if (depthBudgetLeft <= 0) {
+      status += ` [DEPTH LIMIT REACHED — move to new topic]`;
+    }
+    if (t.knowledgeState === 'UNKNOWN' && diagnosticBudgetLeft <= 0) {
+      status += ` [DIAGNOSTIC EXHAUSTED — move to new topic]`;
+    }
+    if (t.misconceptions.length > 0) {
+      status += `\n  Misconceptions: ${t.misconceptions.join('; ')}`;
+    }
+
+    lines.push(status);
+  }
+
+  return lines.join('\n');
 }
