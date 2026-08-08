@@ -34,6 +34,7 @@ export type DecisionAction =
   | 'new_topic'
   | 'clarify'
   | 'challenge'
+  | 'scenario'
   | 'diagnostic'
   | 'recovery'
   | 'complete';

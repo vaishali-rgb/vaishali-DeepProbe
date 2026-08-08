@@ -122,7 +122,7 @@ export async function generateText(
           systemInstruction: { role: 'model', parts: [{ text: systemPrompt }] },
         }),
         timeoutPromise(LLM_TIMEOUT_MS),
-      ]);
+      ]) as any;
 
       return result.response.text();
     } catch (error) {
