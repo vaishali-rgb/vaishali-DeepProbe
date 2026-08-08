@@ -89,146 +89,152 @@ export default function LobbyPage(props: { params: Promise<{ candidateId: string
   const skippedMissions = missions.filter(m => m.skipped)
 
   return (
-    <main className="container mx-auto max-w-4xl p-6 py-12">
-      <Button 
-        variant="ghost" 
-        onClick={() => router.push("/")}
-        className="mb-8 text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Candidate Selection
-      </Button>
+    <section className="relative min-h-screen w-full font-sans text-white bg-black">
+      {/* Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="fixed inset-0 h-full w-full object-cover z-0"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260803_192301_9231ed6b-c55c-4a48-909c-4ebe11cf2e11.mp4"
+      />
+      
+      {/* Content Overlay */}
+      <div className="relative z-10 flex h-full flex-col p-6 py-12">
+        <main className="container mx-auto max-w-4xl">
+          <button 
+            onClick={() => router.push("/")}
+            className="mb-8 flex items-center text-white/70 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Candidate Selection
+          </button>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      >
-        {/* Left Column - Start Action */}
-        <div className="md:col-span-1 space-y-6">
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="text-xl">Interview Lobby</CardTitle>
-              <CardDescription>
-                Ready to begin the AI engineering technical assessment?
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                className="w-full h-14 text-lg font-semibold relative overflow-hidden group"
-                onClick={handleStartInterview}
-                disabled={starting}
-              >
-                {starting ? (
-                  <span className="flex items-center">
-                    <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin mr-2" />
-                    Initializing AI...
-                  </span>
-                ) : (
-                  <>
-                    <span className="relative z-10 flex items-center">
-                      <Play className="w-5 h-5 mr-2 fill-current" /> Begin Interview
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
+            {/* Left Column - Start Action */}
+            <div className="md:col-span-1 space-y-6">
+              <div className="rounded-2xl bg-white/10 backdrop-blur-lg p-6">
+                <h2 className="text-xl font-semibold mb-2">Interview Lobby</h2>
+                <p className="text-sm text-white/70 mb-6">
+                  Ready to begin the AI engineering technical assessment?
+                </p>
+                <button 
+                  className="w-full rounded-full py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center relative overflow-hidden group"
+                  style={{ background: 'linear-gradient(to bottom, #2B2B2B, #101010)' }}
+                  onClick={handleStartInterview}
+                  disabled={starting}
+                >
+                  {starting ? (
+                    <span className="flex items-center">
+                      <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin mr-2" />
+                      Initializing AI...
                     </span>
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Brain className="w-4 h-4 text-primary" /> Key Signals
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50">
-                <span className="text-muted-foreground">Completion Rate</span>
-                <span className="font-semibold">{Math.round((signals.missionsCompleted / 31) * 100)}%</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50">
-                <span className="text-muted-foreground">First-Try Rate</span>
-                <span className="font-semibold">{Math.round((signals.missionsFirstTry / Math.max(1, signals.missionsCompleted)) * 100)}%</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50">
-                <span className="text-muted-foreground">Active Days</span>
-                <span className="font-semibold">{signals.commitDays} / 31</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column - Candidate Brief */}
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-3xl mb-2 flex items-center gap-3">
-                    <User className="w-8 h-8 text-primary" />
-                    {member.name}
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    {member.jobRole} • {member.yearsExperience} years experience
-                  </CardDescription>
-                </div>
-                <Badge variant={member.status === 'Active' ? 'success' : 'secondary'} className="text-sm px-3 py-1">
-                  {member.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="glass p-4 rounded-xl border border-border/50">
-                  <p className="text-sm text-muted-foreground mb-1">Education</p>
-                  <p className="font-medium">{member.education}</p>
-                </div>
-                <div className="glass p-4 rounded-xl border border-border/50">
-                  <p className="text-sm text-muted-foreground mb-1">Total Missions</p>
-                  <p className="font-medium">{missions.length}</p>
-                </div>
+                  ) : (
+                    <>
+                      <span className="relative z-10 flex items-center">
+                        <Play className="w-5 h-5 mr-2 fill-current" /> Begin Interview
+                      </span>
+                      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                    </>
+                  )}
+                </button>
               </div>
 
-              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Mission Highlights</h3>
-              
-              <div className="space-y-4">
-                {passedMissions.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-emerald-400 flex items-center gap-2 mb-2">
-                      <CheckCircle2 className="w-4 h-4" /> Strongly Grasped
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {passedMissions.slice(0, 6).map(m => (
-                        <Badge key={m.day} variant="outline" className="bg-emerald-500/10 border-emerald-500/20">
-                          Day {m.day}: {m.title}
-                        </Badge>
-                      ))}
-                      {passedMissions.length > 6 && (
-                        <Badge variant="outline" className="bg-secondary/50">+{passedMissions.length - 6} more</Badge>
-                      )}
-                    </div>
+              <div className="rounded-2xl bg-white/10 backdrop-blur-lg p-6">
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <Brain className="w-4 h-4 text-white" /> Key Signals
+                </h3>
+                <div className="space-y-4 text-sm">
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-black/20">
+                    <span className="text-white/70">Completion Rate</span>
+                    <span className="font-semibold">{Math.round((signals.missionsCompleted / 31) * 100)}%</span>
                   </div>
-                )}
-
-                {failedMissions.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-destructive flex items-center gap-2 mb-2 mt-4">
-                      <ShieldAlert className="w-4 h-4" /> Areas for Review
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {failedMissions.map(m => (
-                        <Badge key={m.day} variant="outline" className="bg-destructive/10 border-destructive/20">
-                          Day {m.day}: {m.title}
-                        </Badge>
-                      ))}
-                    </div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-black/20">
+                    <span className="text-white/70">First-Try Rate</span>
+                    <span className="font-semibold">{Math.round((signals.missionsFirstTry / Math.max(1, signals.missionsCompleted)) * 100)}%</span>
                   </div>
-                )}
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-black/20">
+                    <span className="text-white/70">Active Days</span>
+                    <span className="font-semibold">{signals.commitDays} / 31</span>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </motion.div>
-    </main>
+            </div>
+
+            {/* Right Column - Candidate Brief */}
+            <div className="md:col-span-2 space-y-6">
+              <div className="rounded-2xl bg-white/10 backdrop-blur-lg p-6 sm:p-8">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6">
+                  <div>
+                    <h2 className="text-3xl mb-2 flex items-center gap-3 font-semibold">
+                      <User className="w-8 h-8 text-white" />
+                      {member.name}
+                    </h2>
+                    <p className="text-base text-white/70">
+                      {member.jobRole} • {member.yearsExperience} years experience
+                    </p>
+                  </div>
+                  <Badge variant={member.status === 'Active' ? 'secondary' : 'outline'} className="mt-4 sm:mt-0 text-sm px-3 py-1 bg-black/30 border-none text-white">
+                    {member.status}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="bg-black/20 p-4 rounded-xl">
+                    <p className="text-sm text-white/70 mb-1">Education</p>
+                    <p className="font-medium">{member.education}</p>
+                  </div>
+                  <div className="bg-black/20 p-4 rounded-xl">
+                    <p className="text-sm text-white/70 mb-1">Total Missions</p>
+                    <p className="font-medium">{missions.length}</p>
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-semibold mb-4 border-b border-white/20 pb-2">Mission Highlights</h3>
+                
+                <div className="space-y-4">
+                  {passedMissions.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-emerald-400 flex items-center gap-2 mb-2">
+                        <CheckCircle2 className="w-4 h-4" /> Strongly Grasped
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {passedMissions.slice(0, 6).map(m => (
+                          <Badge key={m.day} variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-100">
+                            Day {m.day}: {m.title}
+                          </Badge>
+                        ))}
+                        {passedMissions.length > 6 && (
+                          <Badge variant="outline" className="bg-white/10 text-white/70 border-none">+{passedMissions.length - 6} more</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {failedMissions.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-red-400 flex items-center gap-2 mb-2 mt-4">
+                        <ShieldAlert className="w-4 h-4" /> Areas for Review
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {failedMissions.map(m => (
+                          <Badge key={m.day} variant="outline" className="bg-red-500/10 border-red-500/20 text-red-100">
+                            Day {m.day}: {m.title}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </main>
+      </div>
+    </section>
   )
 }
