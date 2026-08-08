@@ -1,6 +1,7 @@
 // Gemini interviewer — the reasoning engine for interview turns
 
-import { generateJSON } from './client';
+import { generateJSON as generateGeminiJSON } from './client';
+import { generateNvidiaJSON } from '../nvidia/client';
 import type { GeminiInterviewResponse, GeminiOpeningResponse } from './schemas';
 import { FALLBACK_EVALUATION, FALLBACK_REASON } from './schemas';
 
@@ -72,10 +73,17 @@ Generate the interview opening. Respond with JSON:
 }`;
 
   try {
-    return await generateJSON<GeminiOpeningResponse>(OPENING_SYSTEM_PROMPT, userPrompt);
+    // 1. Primary: Try NVIDIA Llama 3.1
+    return await generateNvidiaJSON<GeminiOpeningResponse>(OPENING_SYSTEM_PROMPT, userPrompt);
   } catch (error) {
-    // Fallback opening
-    return {
+    console.warn("NVIDIA API Error in generateOpeningQuestion. Falling back to Gemini:", error);
+    try {
+      // 2. Fallback: Gemini (which has its own round-robin fallback)
+      return await generateGeminiJSON<GeminiOpeningResponse>(OPENING_SYSTEM_PROMPT, userPrompt);
+    } catch (geminiError) {
+      console.error("Gemini API Error in generateOpeningQuestion fallback:", geminiError);
+      // 3. Last Resort Fallback opening
+      return {
       question: {
         text: "Welcome to your technical interview. Let's start by discussing your experience with the AI Cohort. Can you walk me through one of the most challenging systems you built during the program and explain the key engineering decisions you made?",
         type: 'project_based',
@@ -130,12 +138,20 @@ Evaluate the answer and generate the next interview action. Respond with JSON:
 }`;
 
   try {
-    const response = await generateJSON<GeminiInterviewResponse>(INTERVIEW_SYSTEM_PROMPT, userPrompt);
+    // 1. Primary: Try NVIDIA Llama 3.1
+    const response = await generateNvidiaJSON<GeminiInterviewResponse>(INTERVIEW_SYSTEM_PROMPT, userPrompt);
     return validateInterviewResponse(response);
   } catch (error) {
-    console.error("Gemini API Error in interviewer.ts:", error);
-    // Fallback: generate a safe follow-up
-    return createFallbackResponse(candidateAnswer);
+    console.warn("NVIDIA API Error in generateInterviewResponse. Falling back to Gemini:", error);
+    try {
+      // 2. Fallback: Try Gemini round-robin
+      const response = await generateGeminiJSON<GeminiInterviewResponse>(INTERVIEW_SYSTEM_PROMPT, userPrompt);
+      return validateInterviewResponse(response);
+    } catch (geminiError) {
+      console.error("Gemini API Error in interviewer.ts fallback:", geminiError);
+      // 3. Last Resort: generate a safe follow-up
+      return createFallbackResponse(candidateAnswer);
+    }
   }
 }
 
