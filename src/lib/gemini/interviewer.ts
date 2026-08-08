@@ -99,6 +99,7 @@ Generate the interview opening. Respond with JSON:
       },
     };
   }
+  }
 }
 
 export async function generateInterviewResponse(
