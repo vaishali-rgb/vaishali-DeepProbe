@@ -11,18 +11,34 @@ let currentClientIndex = 0;
 
 function getClient(): GoogleGenerativeAI {
   if (genClients.length === 0) {
-    const keysStr = process.env.GEMINI_API_KEYS;
-    const singleKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    
     let keys: string[] = [];
-    if (keysStr) {
-      keys = keysStr.split(',').map(k => k.trim()).filter(k => k.length > 0);
-    } else if (singleKey) {
-      keys = [singleKey];
+    
+    // Look for numbered keys (GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.)
+    for (let i = 1; i <= 10; i++) {
+      const key = process.env[`GEMINI_API_KEY_${i}`];
+      if (key && key.trim().length > 0) {
+        keys.push(key.trim());
+      }
+    }
+
+    // Fallback to comma-separated list
+    if (keys.length === 0) {
+      const keysStr = process.env.GEMINI_API_KEYS;
+      if (keysStr) {
+        keys = keysStr.split(',').map(k => k.trim()).filter(k => k.length > 0);
+      }
+    }
+    
+    // Fallback to single key
+    if (keys.length === 0) {
+      const singleKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+      if (singleKey) {
+        keys = [singleKey];
+      }
     }
 
     if (keys.length === 0) {
-      throw new Error('No API keys found. Set GEMINI_API_KEYS (comma separated) or GEMINI_API_KEY');
+      throw new Error('No API keys found. Set GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.');
     }
 
     genClients = keys.map(key => new GoogleGenerativeAI(key));
