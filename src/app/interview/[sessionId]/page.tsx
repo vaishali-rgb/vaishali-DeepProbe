@@ -43,10 +43,25 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
           role: "interviewer",
           content: initialData.reply
         }])
-        sessionStorage.removeItem(`interview_${params.sessionId}_initial`)
+        // Don't remove it immediately to survive React StrictMode double-invocations
+        // It will just be overwritten next time they start a new session anyway.
       } catch (e) {
         console.error(e)
       }
+    } else {
+      // If they refreshed the page, the initial message is gone. Let them know.
+      // Make sure we only do this if we haven't already loaded messages (StrictMode check)
+      setTimeout(() => {
+        setMessages(prev => {
+          if (prev.length > 0) return prev;
+          setIsDone(true)
+          return [{
+            id: Date.now().toString(),
+            role: "interviewer",
+            content: "It looks like the session was refreshed or disconnected. For the hackathon demo, interview sessions are stored in memory and don't persist across page reloads. Please go back to the Home page and select a candidate to start a new interview."
+          }]
+        })
+      }, 1500)
     }
   }, [params.sessionId])
 
