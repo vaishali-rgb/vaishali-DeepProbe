@@ -31,6 +31,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   useEffect(() => {
     fetch("/api/candidates")
@@ -176,20 +177,50 @@ export default function Home() {
              
              {/* CTA (Dropdown + Button) */}
              <div className="mt-6 sm:mt-8 flex flex-col sm:inline-flex sm:flex-row sm:items-center sm:rounded-full sm:bg-black/50 sm:backdrop-blur-xl sm:border sm:border-white/10 sm:p-1.5 gap-3 sm:gap-0">
-               {/* Custom Select matching the email input specs */}
+               {/* Custom Dropdown */}
                <div className="relative w-full sm:w-64">
-                 <select 
-                   className="w-full rounded-full sm:rounded-none bg-black/50 backdrop-blur-xl border border-white/10 sm:border-none sm:bg-transparent px-5 py-3 sm:px-4 sm:py-2 text-sm text-white placeholder-gray-400 outline-none appearance-none cursor-pointer"
-                   value={selectedCandidateId}
-                   onChange={e => setSelectedCandidateId(e.target.value)}
-                   disabled={loading}
+                 <button 
+                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                   className="w-full flex items-center justify-between rounded-full bg-black/50 backdrop-blur-xl border border-white/10 px-5 py-3 sm:px-4 sm:py-2.5 text-sm text-white outline-none cursor-pointer"
                  >
-                   <option value="" disabled>{loading ? "Loading candidates..." : "Select a candidate"}</option>
-                   {candidates.map(c => <option key={c.id} value={c.id}>{c.name} - {c.jobRole}</option>)}
-                 </select>
-                 <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-400">
-                   <ChevronDown className="h-4 w-4" />
-                 </div>
+                   <span className="truncate">
+                     {loading ? "Loading candidates..." : (selectedCandidate ? `${selectedCandidate.name} - ${selectedCandidate.jobRole}` : "Select a candidate")}
+                   </span>
+                   <ChevronDown className={`h-4 w-4 text-white/50 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                 </button>
+                 
+                 <AnimatePresence>
+                   {isDropdownOpen && (
+                     <>
+                       {/* Invisible Backdrop to close on click outside */}
+                       <div 
+                         className="fixed inset-0 z-40" 
+                         onClick={() => setIsDropdownOpen(false)} 
+                       />
+                       
+                       <motion.div 
+                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                         animate={{ opacity: 1, y: 0, scale: 1 }}
+                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                         transition={{ duration: 0.2 }}
+                         className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl flex flex-col p-1"
+                       >
+                         {candidates.map(c => (
+                           <button
+                             key={c.id}
+                             onClick={() => {
+                               setSelectedCandidateId(c.id)
+                               setIsDropdownOpen(false)
+                             }}
+                             className={`w-full text-left px-4 py-2.5 rounded-xl text-sm transition-colors ${selectedCandidateId === c.id ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                           >
+                             {c.name} - {c.jobRole}
+                           </button>
+                         ))}
+                       </motion.div>
+                     </>
+                   )}
+                 </AnimatePresence>
                </div>
                
                <button 
