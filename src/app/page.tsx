@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown, Menu, X, ShieldCheck, User } from "lucide-react"
 import KineticGrid from "@/components/ui/kinetic-grid"
@@ -22,7 +23,7 @@ interface CandidateSummary {
   skippedCount: number
 }
 
-const navLinks = ['Curriculum', 'Evaluation Rubric', 'User Guide']
+// Navigation handled via explicit Link components
 
 export default function Home() {
   const router = useRouter()
@@ -83,16 +84,13 @@ export default function Home() {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-3">
              <div className="flex items-center gap-1 rounded-full bg-black/50 px-1.5 py-1.5 backdrop-blur-xl border border-white/10">
-                <button className="flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
+                <Link href="/curriculum" className="flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
                   Curriculum
-                </button>
-                <button className="flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
-                  Evaluation Rubric
-                </button>
+                </Link>
              </div>
-             <button className="self-stretch rounded-full px-5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ background: 'linear-gradient(to bottom, #2B2B2B, #101010)' }}>
+             <Link href="/guide" className="flex items-center self-stretch rounded-full px-5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ background: 'linear-gradient(to bottom, #2B2B2B, #101010)' }}>
                User Guide
-             </button>
+             </Link>
           </div>
 
           {/* Mobile Nav Toggle */}
@@ -129,18 +127,26 @@ export default function Home() {
               >
                  {/* links */}
                  <div className="flex flex-col gap-2 px-6">
-                   {navLinks.map((link, index) => (
-                     <motion.button
-                       key={link}
+                     <motion.div
                        initial={{ opacity: 0, x: 24 }}
                        animate={{ opacity: 1, x: 0 }}
                        exit={{ opacity: 0, x: 24 }}
-                       transition={{ delay: (index + 1) * 0.06, duration: 0.3 }}
-                       className="flex items-center justify-between rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white text-left"
+                       transition={{ delay: 0.06, duration: 0.3 }}
                      >
-                       {link}
-                     </motion.button>
-                   ))}
+                       <Link href="/curriculum" className="block rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white text-left">
+                         Curriculum
+                       </Link>
+                     </motion.div>
+                     <motion.div
+                       initial={{ opacity: 0, x: 24 }}
+                       animate={{ opacity: 1, x: 0 }}
+                       exit={{ opacity: 0, x: 24 }}
+                       transition={{ delay: 0.12, duration: 0.3 }}
+                     >
+                       <Link href="/guide" className="block rounded-xl px-4 py-3.5 text-base font-medium text-white/80 hover:bg-white/10 hover:text-white text-left">
+                         User Guide
+                       </Link>
+                     </motion.div>
                  </div>
 
                  {/* bottom CTA */}
