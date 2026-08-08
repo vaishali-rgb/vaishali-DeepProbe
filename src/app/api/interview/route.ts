@@ -6,7 +6,6 @@ import { startInterview, processAnswer, finishInterview, SessionError } from '@/
 import type { InterviewResponse, ErrorResponse } from '@/lib/types/api';
 
 export const maxDuration = 60; // Allow up to 60 seconds for Gemini API calls on Vercel
-export const runtime = 'edge'; // Vercel Edge Runtime (up to 30s free execution, no cold boots)
 
 export async function POST(request: NextRequest) {
   try {
