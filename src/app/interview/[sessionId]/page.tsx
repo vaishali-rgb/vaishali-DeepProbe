@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { VoiceRecorder } from "@/components/ui/voice-recorder"
 
 interface Message {
   id: string
@@ -180,6 +181,34 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
                         : "bg-secondary/60 text-secondary-foreground border border-border/50 rounded-tl-sm backdrop-blur-sm"
                     }`}>
                       <p className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">{msg.content}</p>
+                      
+                      {msg.role === "interviewer" && (
+                        <div className="mt-2 flex justify-end">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch('/api/tts', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ text: msg.content })
+                                })
+                                if (!res.ok) throw new Error("TTS failed")
+                                const blob = await res.blob()
+                                const url = URL.createObjectURL(blob)
+                                const audio = new Audio(url)
+                                audio.play()
+                              } catch (e) {
+                                console.error("TTS play failed:", e)
+                              }
+                            }}
+                            className="text-xs text-primary hover:underline flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity"
+                            title="Play audio"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                            Listen
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -223,6 +252,13 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
               />
             </div>
             
+            <VoiceRecorder 
+              onTranscript={(text) => {
+                setInput(text)
+                // Optionally auto-send: handleSend(undefined, text) if you alter handleSend signature
+              }} 
+              disabled={isTyping || isDone} 
+            />
             <Button 
               type="submit" 
               size="icon" 
