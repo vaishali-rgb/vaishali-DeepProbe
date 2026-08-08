@@ -23,9 +23,10 @@ export async function generateNvidiaJSON<T>(
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 1500,
-      response_format: { type: 'json_object' } // Encourage JSON output
-    })
+      max_tokens: 1500
+      // Removed response_format: { type: 'json_object' } as it can cause massive latency spikes on NIM
+    }),
+    signal: AbortSignal.timeout(15000) // 15 second timeout to ensure fast fallback to Gemini
   });
 
   if (!response.ok) {
