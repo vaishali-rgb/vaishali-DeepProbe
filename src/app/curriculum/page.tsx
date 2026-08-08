@@ -5,19 +5,20 @@ import { motion } from "framer-motion"
 import { ArrowLeft, BookOpen, Clock, Code, Database, Server, Workflow } from "lucide-react"
 import KineticGrid from "@/components/ui/kinetic-grid"
 import { Button } from "@/components/ui/button"
+import curriculumData from "@/data/curriculum.json"
 
-const curriculumModules = [
-  { day: 1, title: "VS Code & Python Environment Setup", icon: <Code className="w-5 h-5 text-blue-400" /> },
-  { day: 3, title: "Variables, Data Types & Basic Logic", icon: <Code className="w-5 h-5 text-blue-400" /> },
-  { day: 5, title: "Functions & Modular Programming", icon: <Code className="w-5 h-5 text-blue-400" /> },
-  { day: 8, title: "Object-Oriented Programming Fundamentals", icon: <Code className="w-5 h-5 text-blue-400" /> },
-  { day: 12, title: "FastAPI & RESTful Design", icon: <Server className="w-5 h-5 text-emerald-400" /> },
-  { day: 15, title: "Database Modeling & SQL", icon: <Database className="w-5 h-5 text-purple-400" /> },
-  { day: 18, title: "LLM APIs & Prompt Engineering", icon: <Workflow className="w-5 h-5 text-amber-400" /> },
-  { day: 22, title: "Multi-Agent Orchestration", icon: <Workflow className="w-5 h-5 text-amber-400" /> },
-  { day: 28, title: "Docker & Kubernetes Deployment", icon: <Server className="w-5 h-5 text-emerald-400" /> },
-  { day: 31, title: "Capstone Project & Final Demo", icon: <BookOpen className="w-5 h-5 text-primary" /> },
-]
+function getIconForType(type: string) {
+  switch (type) {
+    case "SETUP": return <Code className="w-5 h-5 text-blue-400" />
+    case "BUILD": return <Workflow className="w-5 h-5 text-amber-400" />
+    case "AI_CORE": return <Database className="w-5 h-5 text-purple-400" />
+    case "SHIP_IT": return <Server className="w-5 h-5 text-emerald-400" />
+    case "LEARN": return <BookOpen className="w-5 h-5 text-blue-300" />
+    case "OPTIMIZE": return <Clock className="w-5 h-5 text-orange-400" />
+    case "CAPSTONE": return <BookOpen className="w-5 h-5 text-primary" />
+    default: return <BookOpen className="w-5 h-5 text-white/50" />
+  }
+}
 
 export default function CurriculumPage() {
   const router = useRouter()
@@ -48,23 +49,53 @@ export default function CurriculumPage() {
           </motion.div>
 
           <div className="space-y-4">
-            {curriculumModules.map((mod, index) => (
+            {curriculumData.days.map((mod, index) => (
               <motion.div
                 key={mod.day}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-center gap-6 p-5 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 shadow-lg"
+                transition={{ delay: (index % 10) * 0.1 }}
+                className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 p-5 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/10 shadow-lg"
               >
-                <div className="flex-shrink-0 w-16 text-center">
-                  <span className="block text-sm font-semibold text-white/50 uppercase tracking-wider">Day</span>
-                  <span className="block text-2xl font-bold text-white">{mod.day}</span>
+                <div className="flex items-center sm:flex-col gap-4 sm:gap-0 sm:w-16 sm:text-center shrink-0">
+                  <div>
+                    <span className="block text-sm font-semibold text-white/50 uppercase tracking-wider">Day</span>
+                    <span className="block text-2xl font-bold text-white">{mod.day}</span>
+                  </div>
+                  <div className="hidden sm:flex mt-4 w-12 h-12 rounded-full bg-white/5 items-center justify-center border border-white/10 mx-auto">
+                    {getIconForType(mod.type)}
+                  </div>
                 </div>
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-                  {mod.icon}
-                </div>
+                
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white">{mod.title}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="sm:hidden w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+                      {getIconForType(mod.type)}
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-white/70">{mod.type}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-3">{mod.title}</h3>
+                  
+                  {mod.tools && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {mod.tools.map((tool: string, i: number) => (
+                        <span key={i} className="text-[10px] uppercase tracking-wider text-blue-300 border border-blue-400/20 bg-blue-400/5 px-2 py-1 rounded">
+                          {tool}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {mod.objectives && (
+                    <ul className="space-y-2">
+                      {mod.objectives.map((obj: string, i: number) => (
+                        <li key={i} className="text-sm text-white/70 flex items-start gap-2">
+                          <span className="text-white/30 mt-0.5 shrink-0">•</span>
+                          <span>{obj}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </motion.div>
             ))}
