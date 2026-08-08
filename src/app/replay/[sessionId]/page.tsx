@@ -51,17 +51,31 @@ export default function ReplayPage(props: { params: Promise<{ sessionId: string 
   const [activeQuestion, setActiveQuestion] = useState<number | null>(null)
 
   useEffect(() => {
-    fetch(`/api/interview/${params.sessionId}/replay`)
-      .then(res => res.json())
-      .then(d => {
-        setData(d)
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error("Failed to load replay", err)
-        setLoading(false)
-      })
-  }, [params.sessionId])
+    try {
+      const stateStr = sessionStorage.getItem(`interview_${params.sessionId}_state`);
+      if (!stateStr) {
+        throw new Error('Session state not found');
+      }
+      const state = JSON.parse(stateStr);
+      
+      const mappedData: ReplayState = {
+        sessionId: state.sessionId,
+        candidateName: state.candidateData.member.name,
+        candidateRole: state.candidateData.member.jobRole,
+        questionCount: state.questionCount,
+        curriculumDaysCovered: [...new Set(state.curriculumDaysCovered)] as number[],
+        phase: state.phase,
+        evidence: state.evidence,
+        startedAt: state.startedAt,
+      };
+      
+      setData(mappedData);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to load replay data", err);
+      setLoading(false);
+    }
+  }, [params.sessionId]);
 
   if (loading) {
     return (

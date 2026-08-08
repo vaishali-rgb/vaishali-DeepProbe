@@ -1,6 +1,7 @@
 // API request/response types — matches organizer's technical-spec.md exactly
 
 import type { CandidateProfile } from './candidate';
+import type { InterviewState } from './interview';
 
 // --- Request types ---
 
@@ -14,10 +15,17 @@ export interface InterviewInitRequest {
 export interface InterviewTurnRequest {
   sessionId: string;
   message: string;
+  state: InterviewState;
+}
+
+export interface InterviewEndRequest {
+  sessionId: string;
+  action: 'end';
+  state: InterviewState;
 }
 
 // Union type for the POST body
-export type InterviewRequest = InterviewInitRequest | InterviewTurnRequest;
+export type InterviewRequest = InterviewInitRequest | InterviewTurnRequest | InterviewEndRequest;
 
 // Type guards
 export function isInitRequest(req: InterviewRequest): req is InterviewInitRequest {
@@ -48,9 +56,10 @@ export interface InterviewResponse {
   reply: string;
   done: boolean;
   feedback?: FeedbackResponse;
+  state: InterviewState;
 }
 
-// --- Error response ---
+// Standardized error response
 export interface ErrorResponse {
   error: string;
   code: string;

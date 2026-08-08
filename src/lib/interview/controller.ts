@@ -6,7 +6,6 @@ import { MAX_FOLLOWUPS_PER_TOPIC, MAX_DIAGNOSTIC_ATTEMPTS } from '@/lib/types/in
 import type { CandidateProfile } from '@/lib/types/candidate';
 import type { InterviewResponse, FeedbackResponse } from '@/lib/types/api';
 
-import { sessionManager } from './session-manager';
 import { analyzeCandidate } from './candidate-analyzer';
 import { generateInterviewPlan } from './question-planner';
 import { buildInterviewContext } from './context-builder';
@@ -54,12 +53,11 @@ export async function startInterview(
   state = addMessage(state, 'interviewer', opening.question.text);
   state = transitionPhase(state, 'WARM_UP');
 
-  // 7. Store session
-  sessionManager.create(sessionId, state);
 
   return {
     reply: opening.question.text,
     done: false,
+    state,
   };
 }
 
@@ -67,13 +65,9 @@ export async function startInterview(
 
 export async function processAnswer(
   sessionId: string,
-  message: string
+  message: string,
+  state: InterviewState
 ): Promise<InterviewResponse> {
-  // 1. Get session
-  let state = sessionManager.get(sessionId);
-  if (!state) {
-    throw new SessionError('Session not found', 'SESSION_NOT_FOUND');
-  }
   if (state.status === 'completed') {
     throw new SessionError('Interview already completed', 'INTERVIEW_COMPLETED');
   }
@@ -204,9 +198,8 @@ export async function processAnswer(
     const overrideResponse = await generateInterviewResponse(overrideContext, message);
     
     state = addMessage(state, 'interviewer', overrideResponse.question.text);
-    sessionManager.update(sessionId, state);
-
-    return { reply: overrideResponse.question.text, done: false };
+    
+    return { reply: overrideResponse.question.text, done: false, state };
   }
 
   if (geminiWantsToFinish && (forceExit || (coverageMet && evidenceQualitySufficient))) {
@@ -252,10 +245,11 @@ export async function processAnswer(
   state.questionsAsked = [...state.questionsAsked, replyText];
   state = addMessage(state, 'interviewer', replyText);
 
-  // 14. Save state
-  sessionManager.update(sessionId, state);
-
-  return { reply: replyText, done: false };
+  return {
+    reply: replyText,
+    done: false,
+    state,
+  };
 }
 
 // ─── Finish Interview ──────────────────────────────────────────────
@@ -279,7 +273,6 @@ export async function finishInterview(
   const closingMessage = `Thank you for completing this interview, ${state.candidateData.member.name}. I've gathered sufficient evidence across ${[...new Set(state.curriculumDaysCovered)].length} curriculum areas over ${state.questionCount} questions. Your detailed feedback is ready for review.`;
 
   state = addMessage(state, 'interviewer', closingMessage);
-  sessionManager.update(sessionId, state);
 
   // The feedback object already matches the FeedbackResponse interface exactly now.
   const feedbackResponse: FeedbackResponse = feedback;
@@ -288,6 +281,7 @@ export async function finishInterview(
     reply: closingMessage,
     done: true,
     feedback: feedbackResponse,
+    state,
   };
 }
 

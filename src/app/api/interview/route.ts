@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { startInterview, processAnswer, finishInterview, SessionError } from '@/lib/interview/controller';
-import { sessionManager } from '@/lib/interview/session-manager';
 import type { InterviewResponse, ErrorResponse } from '@/lib/types/api';
 
 export const maxDuration = 60; // Allow up to 60 seconds for Gemini API calls on Vercel
+export const runtime = 'edge'; // Vercel Edge Runtime (up to 30s free execution, no cold boots)
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,10 +21,7 @@ export async function POST(request: NextRequest) {
 
     // Route: Init request (has candidate field)
     if (body.candidate) {
-      // Check for duplicate session
-      if (sessionManager.has(sessionId)) {
-        return errorResponse('Session already exists', 'SESSION_EXISTS', 409);
-      }
+      // (Stateless: no duplicate session check needed)
 
       const result: InterviewResponse = await startInterview(sessionId, body.candidate);
       return NextResponse.json(result);
@@ -33,20 +30,23 @@ export async function POST(request: NextRequest) {
     // Route: Turn request (has message field)
     if ('message' in body) {
       const message = body.message;
+      const state = body.state;
+
+      if (!state) return errorResponse('Missing interview state', 'MISSING_STATE', 400);
 
       // Validate message
       if (typeof message !== 'string' || message.trim().length === 0) {
         return errorResponse('Message cannot be empty', 'EMPTY_MESSAGE', 400);
       }
 
-      const result: InterviewResponse = await processAnswer(sessionId, message.trim());
+      const result: InterviewResponse = await processAnswer(sessionId, message.trim(), state);
       return NextResponse.json(result);
     }
 
     // Route: Early Exit request
     if (body.action === 'end') {
-      let state = sessionManager.get(sessionId);
-      if (!state) return errorResponse('Session not found', 'SESSION_NOT_FOUND', 404);
+      const state = body.state;
+      if (!state) return errorResponse('Missing interview state', 'MISSING_STATE', 400);
       
       const result: InterviewResponse = await finishInterview(sessionId, state);
       return NextResponse.json(result);

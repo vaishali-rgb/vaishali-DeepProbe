@@ -29,6 +29,7 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
   const [isDone, setIsDone] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
+  const [interviewState, setInterviewState] = useState<any>(null)
   
   // Stats
   const [questionsCount, setQuestionsCount] = useState(0)
@@ -46,6 +47,15 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
           role: "interviewer",
           content: initialData.reply
         }])
+        
+        // Also get the rolling state or use initial state
+        const rollingStateStr = sessionStorage.getItem(`interview_${params.sessionId}_state`)
+        if (rollingStateStr) {
+          setInterviewState(JSON.parse(rollingStateStr))
+        } else if (initialData.state) {
+          setInterviewState(initialData.state)
+          sessionStorage.setItem(`interview_${params.sessionId}_state`, JSON.stringify(initialData.state))
+        }
         // Don't remove it immediately to survive React StrictMode double-invocations
         // It will just be overwritten next time they start a new session anyway.
       } catch (e) {
@@ -61,7 +71,7 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
           return [{
             id: Date.now().toString(),
             role: "interviewer",
-            content: "It looks like the session was refreshed or disconnected. For the hackathon demo, interview sessions are stored in memory and don't persist across page reloads. Please go back to the Home page and select a candidate to start a new interview."
+            content: "⚠️ Session state not found. Please go back to the Home page and start a new interview."
           }]
         })
       }, 1500)
@@ -91,7 +101,8 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: params.sessionId,
-          message: text
+          message: text,
+          state: interviewState
         })
       })
       
@@ -129,6 +140,11 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
       
       setMessages(prev => [...prev, aiMsg])
       
+      if (data.state) {
+        setInterviewState(data.state)
+        sessionStorage.setItem(`interview_${params.sessionId}_state`, JSON.stringify(data.state))
+      }
+      
       if (data.done) {
         setIsDone(true)
         setIsEvaluating(true)
@@ -158,10 +174,15 @@ export default function InterviewPage(props: { params: Promise<{ sessionId: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: params.sessionId,
-          action: "end"
+          action: "end",
+          state: interviewState
         })
       })
       const data = await res.json()
+      if (data.state) {
+        setInterviewState(data.state)
+        sessionStorage.setItem(`interview_${params.sessionId}_state`, JSON.stringify(data.state))
+      }
       if (data.done) {
         setIsDone(true)
         if (data.feedback) {
